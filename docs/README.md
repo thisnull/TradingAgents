@@ -17,6 +17,7 @@ This directory contains all documentation for the TradingAgents project.
 
 ### System Analysis and Architecture
 - **`TradingAgents_技术深度解析与上手指南.md`** - Technical deep dive and getting started guide
+- **`TradingAgents_Agent技术架构深度分析.md`** - **🆕 Agent技术架构深度分析** - 全面分析多Agent协作、状态管理、辩论机制等核心技术创新
 - **`TradingAgents_双模型架构_深度思考vs快速响应使用场景分析.md`** - Dual-model architecture analysis
 - **`TradingAgents_系统测试指南.md`** - System testing guide
 
