@@ -112,6 +112,27 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
+## Project Structure
+
+```
+TradingAgents/
+├── docs/                    # 📚 Documentation
+│   ├── CLAUDE.md           # Main setup and architecture guide
+│   └── *.md               # Configuration and analysis guides
+├── scripts/                # 🧪 Test and utility scripts
+│   ├── quick_test.py      # Basic system validation
+│   ├── test_system.py     # Comprehensive health checks
+│   └── test_*.py          # Specialized test scripts
+├── tradingagents/          # 🏛️ Core framework
+│   ├── agents/            # AI agents (analysts, researchers, traders)
+│   ├── graph/             # LangGraph workflow management
+│   └── dataflows/         # Data acquisition and processing
+├── cli/                    # 💻 Command-line interface
+└── results/               # 📊 Analysis results and reports
+```
+
+For detailed setup and configuration, see [`docs/CLAUDE.md`](docs/CLAUDE.md).
+
 ### Required APIs
 
 You will also need the FinnHub API for financial data. All of our code is implemented with the free tier.

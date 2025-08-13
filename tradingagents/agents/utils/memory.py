@@ -5,21 +5,53 @@ from openai import OpenAI
 
 class FinancialSituationMemory:
     def __init__(self, name, config):
-        if config["backend_url"] == "http://localhost:11434/v1":
-            self.embedding = "nomic-embed-text"
+        # 使用配置文件中的embedding模型，而不是硬编码
+        self.embedding = config.get("embedding_model", "text-embedding-3-small")
+        
+        # 支持独立的embedding backend URL（如ollama）
+        embedding_backend_url = config.get("embedding_backend_url")
+        if embedding_backend_url:
+            # 使用独立的embedding服务（如ollama）
+            self.client = OpenAI(base_url=embedding_backend_url)
         else:
-            self.embedding = "text-embedding-3-small"
-        self.client = OpenAI(base_url=config["backend_url"])
+            # 使用主LLM服务的backend_url
+            self.client = OpenAI(base_url=config["backend_url"])
+            
         self.chroma_client = chromadb.Client(Settings(allow_reset=True))
         self.situation_collection = self.chroma_client.create_collection(name=name)
 
     def get_embedding(self, text):
-        """Get OpenAI embedding for a text"""
+        """Get embedding for a text - supports both OpenAI and Ollama formats"""
         
-        response = self.client.embeddings.create(
-            model=self.embedding, input=text
-        )
-        return response.data[0].embedding
+        embedding_backend_url = str(self.client.base_url)
+        
+        # 检查是否是ollama服务（通过URL判断）
+        if "localhost" in embedding_backend_url or ":11434" in embedding_backend_url or "/api/embeddings" in embedding_backend_url:
+            # Ollama API格式
+            import requests
+            try:
+                response = requests.post(
+                    f"{embedding_backend_url.rstrip('/')}/api/embeddings",
+                    json={
+                        "model": self.embedding,
+                        "prompt": text
+                    },
+                    timeout=30
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    return data["embedding"]
+                else:
+                    raise Exception(f"Ollama embedding request failed: {response.status_code} - {response.text}")
+            except Exception as e:
+                print(f"Ollama embedding error: {e}")
+                raise
+        else:
+            # OpenAI API格式
+            response = self.client.embeddings.create(
+                model=self.embedding, input=text
+            )
+            return response.data[0].embedding
 
     def add_situations(self, situations_and_advice):
         """Add financial situations and their corresponding advice. Parameter is a list of tuples (situation, rec)"""

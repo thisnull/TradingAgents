@@ -19,6 +19,22 @@ from rich.tree import Tree
 from rich import box
 from rich.align import Align
 from rich.rule import Rule
+import os
+
+# 加载.env文件
+def load_env_file():
+    """加载.env文件中的环境变量"""
+    env_path = ".env"
+    if os.path.exists(env_path):
+        with open(env_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    os.environ[key.strip()] = value.strip()
+
+# 在导入其他模块前先加载环境变量
+load_env_file()
 
 from tradingagents.graph.trading_graph import TradingAgentsGraph
 from tradingagents.default_config import DEFAULT_CONFIG
@@ -463,32 +479,33 @@ def get_user_selections():
     )
     selected_research_depth = select_research_depth()
 
-    # Step 5: OpenAI backend
+    # 使用配置文件中的LLM设置，不再询问用户
     console.print(
         create_question_box(
-            "Step 5: OpenAI backend", "Select which service to talk to"
+            "Step 5: LLM Configuration", "Using configuration from .env file"
         )
     )
-    selected_llm_provider, backend_url = select_llm_provider()
     
-    # Step 6: Thinking agents
-    console.print(
-        create_question_box(
-            "Step 6: Thinking Agents", "Select your thinking agents for analysis"
-        )
-    )
-    selected_shallow_thinker = select_shallow_thinking_agent(selected_llm_provider)
-    selected_deep_thinker = select_deep_thinking_agent(selected_llm_provider)
+    # 直接从DEFAULT_CONFIG读取配置
+    llm_provider = DEFAULT_CONFIG["llm_provider"]
+    backend_url = DEFAULT_CONFIG["backend_url"] 
+    deep_think_llm = DEFAULT_CONFIG["deep_think_llm"]
+    quick_think_llm = DEFAULT_CONFIG["quick_think_llm"]
+    
+    console.print(f"[green]✅ LLM Provider:[/green] {llm_provider}")
+    console.print(f"[green]✅ Backend URL:[/green] {backend_url}")
+    console.print(f"[green]✅ Deep Think Model:[/green] {deep_think_llm}")
+    console.print(f"[green]✅ Quick Think Model:[/green] {quick_think_llm}")
 
     return {
         "ticker": selected_ticker,
         "analysis_date": analysis_date,
         "analysts": selected_analysts,
         "research_depth": selected_research_depth,
-        "llm_provider": selected_llm_provider.lower(),
+        "llm_provider": llm_provider,
         "backend_url": backend_url,
-        "shallow_thinker": selected_shallow_thinker,
-        "deep_thinker": selected_deep_thinker,
+        "shallow_thinker": quick_think_llm,  # 使用配置文件中的快速模型
+        "deep_thinker": deep_think_llm,      # 使用配置文件中的深度模型
     }
 
 

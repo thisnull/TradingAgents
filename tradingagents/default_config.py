@@ -8,15 +8,18 @@ DEFAULT_CONFIG = {
         os.path.abspath(os.path.join(os.path.dirname(__file__), ".")),
         "dataflows/data_cache",
     ),
-    # LLM settings
-    "llm_provider": "openai",
-    "deep_think_llm": "o4-mini",
-    "quick_think_llm": "gpt-4o-mini",
-    "backend_url": "https://api.openai.com/v1",
+    # LLM settings - Support .env configuration
+    "llm_provider": os.getenv("TRADINGAGENTS_LLM_PROVIDER", "openai"),
+    "deep_think_llm": os.getenv("TRADINGAGENTS_DEEP_THINK_LLM", "deepseek-r1"),
+    "quick_think_llm": os.getenv("TRADINGAGENTS_QUICK_THINK_LLM", "gemini-2.5-flash"),
+    "backend_url": os.getenv("TRADINGAGENTS_BACKEND_URL", "https://api.openai.com/v1"),
+    # Embedding model configuration
+    "embedding_model": os.getenv("TRADINGAGENTS_EMBEDDING_MODEL", "text-embedding-3-small"),
+    "embedding_backend_url": os.getenv("TRADINGAGENTS_EMBEDDING_BACKEND_URL", None),  # 独立的embedding服务URL
     # Debate and discussion settings
-    "max_debate_rounds": 1,
-    "max_risk_discuss_rounds": 1,
-    "max_recur_limit": 100,
+    "max_debate_rounds": int(os.getenv("TRADINGAGENTS_MAX_DEBATE_ROUNDS", "1")),
+    "max_risk_discuss_rounds": int(os.getenv("TRADINGAGENTS_MAX_RISK_DISCUSS_ROUNDS", "1")),
+    "max_recur_limit": int(os.getenv("TRADINGAGENTS_MAX_RECUR_LIMIT", "100")),
     # Tool settings
-    "online_tools": True,
+    "online_tools": os.getenv("TRADINGAGENTS_ONLINE_TOOLS", "True").lower() == "true",
 }
