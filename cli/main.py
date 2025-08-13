@@ -37,6 +37,7 @@ def load_env_file():
 load_env_file()
 
 from tradingagents.graph.trading_graph import TradingAgentsGraph
+from tradingagents.graph.a_stock_graph import AStockGraph
 from tradingagents.default_config import DEFAULT_CONFIG
 from cli.models import AnalystType
 from cli.utils import *
@@ -1120,3 +1121,26 @@ def analyze():
 
 if __name__ == "__main__":
     app()
+
+
+@app.command()
+def analyze_ashare(
+    symbol: str = typer.Option(..., help="A股股票代码，如 600519、000001"),
+    analysis_date: str = typer.Option(
+        datetime.datetime.now().strftime("%Y-%m-%d"), help="分析日期，YYYY-MM-DD"
+    ),
+):
+    """A股多智能体分析：核心财务、行业竞争、估值与市场信号，生成整合报告。"""
+    # 基于配置初始化
+    config = DEFAULT_CONFIG.copy()
+    graph = AStockGraph(debug=True, config=config)
+
+    # 构造初始状态并执行
+    init_state = graph.propagator.create_initial_state(symbol, analysis_date)
+    args = graph.propagator.get_graph_args()
+
+    final_state = graph.graph.invoke(init_state, **args)
+
+    # 打印报告
+    report = final_state.get("a_stock_final_report") or "(no report)"
+    console.print(Panel(Markdown(report), title=f"A股分析报告 - {symbol}", border_style="green"))
