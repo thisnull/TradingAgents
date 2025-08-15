@@ -1,0 +1,31 @@
+# A股分析Multi-Agent System 依赖包
+
+# 核心依赖
+akshare>=1.13.0           # A股数据获取
+langchain>=0.2.0           # LLM框架
+langchain-openai>=0.1.0    # OpenAI集成
+langchain-community>=0.2.0 # 社区工具
+langgraph>=0.1.0          # 工作流编排
+
+# 数据处理
+pandas>=2.2.0             # 数据分析
+numpy>=1.26.0             # 数值计算
+scipy>=1.12.0             # 科学计算
+
+# 工具库
+python-dotenv>=1.0.0      # 环境变量管理
+loguru>=0.7.0             # 日志管理
+tenacity>=8.2.0           # 重试机制
+cachetools>=5.3.0         # 缓存工具
+
+# 报告生成
+jinja2>=3.1.0             # 模板引擎
+markdown>=3.5.0           # Markdown处理
+
+# 可选依赖
+# chromadb>=0.4.0         # 向量数据库（可选）
+# sentence-transformers>=2.3.0  # 句子嵌入（可选）
+# tushare>=1.4.0          # 备选数据源（可选）
+# weasyprint>=61.0        # PDF生成（可选）
+# fastapi>=0.110.0        # API服务（可选）
+# uvicorn>=0.27.0         # ASGI服务器（可选）
