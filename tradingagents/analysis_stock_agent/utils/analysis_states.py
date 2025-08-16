@@ -70,17 +70,31 @@ class FinancialAnalysisResult(BaseModel):
     risk_warnings: List[str] = Field(default_factory=list, description="风险提示")
 
 class IndustryAnalysisResult(BaseModel):
-    """行业分析结果"""
-    # 行业基本信息
-    industry_name: Optional[str] = Field(None, description="所属行业")
-    industry_code: Optional[str] = Field(None, description="行业代码")
+    """行业分析结果 - 基于申万行业分类"""
+    # 基础行业信息
+    symbol: str = Field(..., description="分析股票代码")
+    analysis_date: datetime = Field(default_factory=datetime.now, description="分析日期")
+    status: AnalysisStatus = Field(default=AnalysisStatus.PENDING, description="分析状态")
+    error_message: Optional[str] = Field(None, description="错误信息")
+    
+    # 申万行业分类信息
+    sw_industry_hierarchy: Optional[Dict[str, Any]] = Field(None, description="申万行业层级结构")
+    sw_level_1: Optional[Dict[str, str]] = Field(None, description="申万一级行业")
+    sw_level_2: Optional[Dict[str, str]] = Field(None, description="申万二级行业")
+    sw_level_3: Optional[Dict[str, str]] = Field(None, description="申万三级行业")
+    
+    # 行业发展信息
     industry_growth_rate: Optional[float] = Field(None, description="行业增长率(%)")
     industry_stage: Optional[str] = Field(None, description="行业发展阶段")
     
-    # 行业对比分析
+    # 行业地位分析
+    industry_metrics: Optional[Any] = Field(None, description="行业分析指标")  # IndustryMetrics
     market_position: Optional[int] = Field(None, description="行业排名")
     market_share: Optional[float] = Field(None, description="市场份额(%)")
     peer_comparison: Dict[str, Any] = Field(default_factory=dict, description="同业对比数据")
+    
+    # 竞争对手信息（纯申万分类）
+    competitors_data: List[Any] = Field(default_factory=list, description="竞争对手数据")  # List[CompetitorInfo]
     
     # 关键指标对比
     gross_margin_vs_industry: Optional[Dict[str, float]] = Field(None, description="毛利率对比")
@@ -90,12 +104,27 @@ class IndustryAnalysisResult(BaseModel):
     # 竞争优势分析
     competitive_advantages: List[str] = Field(default_factory=list, description="竞争优势")
     competitive_disadvantages: List[str] = Field(default_factory=list, description="竞争劣势")
+    industry_risks: List[str] = Field(default_factory=list, description="行业风险")
     moat_analysis: Optional[str] = Field(None, description="护城河分析")
+    
+    # 综合分析报告
+    analysis_summary: Optional[str] = Field(None, description="行业分析摘要")
+    industry_trends_analysis: Optional[str] = Field(None, description="行业趋势分析")
     
     # 综合评估
     competition_score: Optional[float] = Field(None, ge=0, le=10, description="竞争力评分")
+    industry_position_score: Optional[float] = Field(None, ge=0, le=100, description="行业地位评分")
     industry_outlook: Optional[str] = Field(None, description="行业前景")
     key_competitors: List[str] = Field(default_factory=list, description="主要竞争对手")
+    
+    # 数据来源信息
+    data_sources: List[DataSource] = Field(default_factory=list, description="数据来源")
+    data_quality_score: Optional[float] = Field(None, description="数据质量评分")
+    
+    # 申万行业特定分析
+    sw_industry_activity_analysis: Optional[Dict[str, Any]] = Field(None, description="申万行业活跃度分析")
+    sw_industry_scale_analysis: Optional[Dict[str, Any]] = Field(None, description="申万行业规模分析")
+    multi_level_industry_comparison: Optional[Dict[str, Any]] = Field(None, description="多级行业对比分析")
 
 class ValuationAnalysisResult(BaseModel):
     """估值分析结果"""
@@ -285,3 +314,134 @@ def create_analysis_state(symbol: str, request_id: str = None, config: Dict[str,
         request_id=request_id,
         config=config or {}
     )
+
+def validate_sw_industry_data(data: Dict[str, Any]) -> bool:
+    """验证申万行业数据的完整性"""
+    if not data:
+        return False
+    
+    # 检查层级结构
+    hierarchy = data.get('hierarchy', {})
+    if not hierarchy:
+        return False
+    
+    # 检查至少有一个级别的数据
+    valid_levels = 0
+    for level in [1, 2, 3]:
+        level_key = f'level_{level}'
+        if level_key in hierarchy and hierarchy[level_key]:
+            level_data = hierarchy[level_key]
+            if isinstance(level_data, dict) and level_data.get('industry_code') and level_data.get('industry_name'):
+                valid_levels += 1
+    
+    return valid_levels > 0
+
+def extract_sw_industry_info(hierarchy_data: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
+    """从申万行业层级数据中提取结构化信息"""
+    extracted = {}
+    
+    hierarchy = hierarchy_data.get('hierarchy', {})
+    for level in [1, 2, 3]:
+        level_key = f'level_{level}'
+        if level_key in hierarchy and hierarchy[level_key]:
+            level_data = hierarchy[level_key]
+            if isinstance(level_data, dict):
+                extracted[f'sw_level_{level}'] = {
+                    'industry_code': level_data.get('industry_code', ''),
+                    'industry_name': level_data.get('industry_name', ''),
+                    'parent_code': level_data.get('parent_code', ''),
+                    'level': str(level)
+                }
+    
+    return extracted
+
+def merge_sw_competitor_data(competitors: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """整理申万竞争对手数据，去重并标准化"""
+    cleaned = []
+    seen_symbols = set()
+    
+    for comp in competitors:
+        symbol = comp.get('symbol')
+        if symbol and symbol not in seen_symbols:
+            # 标准化数据结构
+            standardized_comp = {
+                'symbol': symbol,
+                'name': comp.get('name', ''),
+                'industry_code': comp.get('industry_code', ''),
+                'industry_name': comp.get('industry_name', ''),
+                'industry_level': comp.get('industry_level'),
+                'market_cap': comp.get('market_cap'),
+                'revenue': comp.get('revenue'),
+                'profit': comp.get('profit'),
+                'roe': comp.get('roe'),
+                'profit_margin': comp.get('profit_margin')
+            }
+            cleaned.append(standardized_comp)
+            seen_symbols.add(symbol)
+    
+    return cleaned
+
+def calculate_industry_data_quality_score(industry_data: Dict[str, Any]) -> float:
+    """计算行业数据质量评分"""
+    score = 0.0
+    total_weights = 0.0
+    
+    # 申万行业层级数据 (权重: 40%)
+    sw_info = industry_data.get('sw_industry_info', {})
+    if sw_info and validate_sw_industry_data(sw_info):
+        hierarchy = sw_info.get('hierarchy', {})
+        valid_levels = sum(1 for level in [1, 2, 3] 
+                          if f'level_{level}' in hierarchy and hierarchy[f'level_{level}'])
+        score += (valid_levels / 3.0) * 40
+    total_weights += 40
+    
+    # 竞争对手数据 (权重: 30%)
+    competitors_data = industry_data.get('competitors', {})
+    if competitors_data:
+        valid_competitors = sum(1 for comp_data in competitors_data.values() 
+                              if comp_data and isinstance(comp_data, dict))
+        max_expected = 10  # 期望的竞争对手数量
+        competitor_ratio = min(1.0, valid_competitors / max_expected)
+        score += competitor_ratio * 30
+    total_weights += 30
+    
+    # 目标公司数据 (权重: 20%)
+    target_data = industry_data.get('target_company', {})
+    if target_data:
+        required_fields = ['roe', 'net_profit_margin', 'current_ratio']
+        valid_fields = sum(1 for field in required_fields 
+                          if target_data.get(field) is not None)
+        field_ratio = valid_fields / len(required_fields)
+        score += field_ratio * 20
+    total_weights += 20
+    
+    # 行业摘要数据 (权重: 10%)
+    industry_summary = industry_data.get('industry_summary', {})
+    if industry_summary:
+        score += 10
+    total_weights += 10
+    
+    return score / total_weights if total_weights > 0 else 0.0
+
+class SWIndustryHierarchy(BaseModel):
+    """申万行业层级数据结构"""
+    level_1: Optional[Dict[str, str]] = Field(None, description="一级行业信息")
+    level_2: Optional[Dict[str, str]] = Field(None, description="二级行业信息")
+    level_3: Optional[Dict[str, str]] = Field(None, description="三级行业信息")
+    
+    def get_primary_industry(self, priority_levels: List[int] = [3, 2, 1]) -> Optional[Dict[str, str]]:
+        """获取主要行业信息，按优先级顺序"""
+        for level in priority_levels:
+            level_data = getattr(self, f'level_{level}', None)
+            if level_data and level_data.get('industry_code'):
+                return level_data
+        return None
+    
+    def get_industry_path(self) -> str:
+        """获取完整的行业路径"""
+        path_parts = []
+        for level in [1, 2, 3]:
+            level_data = getattr(self, f'level_{level}', None)
+            if level_data and level_data.get('industry_name'):
+                path_parts.append(level_data['industry_name'])
+        return " > ".join(path_parts) if path_parts else ""

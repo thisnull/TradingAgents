@@ -344,49 +344,6 @@ class AShareToolkit:
             logger.error(f"获取行情数据失败 {symbol}: {e}")
             raise AShareAPIError(f"获取行情数据失败: {str(e)}")
     
-    async def get_industry_stocks(self, industry: str, limit: int = 20) -> Dict[str, Any]:
-        """获取同行业股票列表"""
-        try:
-            endpoint = "/market/basic"
-            params = {
-                'limit': limit,
-                'offset': 0
-            }
-            
-            response = await self._make_request(endpoint, params)
-            
-            if 'data' in response:
-                all_stocks = response['data']
-                
-                # 筛选同行业股票
-                industry_stocks = []
-                for stock in all_stocks:
-                    if stock.get('industry') and industry in stock.get('industry', ''):
-                        industry_stocks.append({
-                            'symbol': stock.get('symbol'),
-                            'name': stock.get('name'),
-                            'industry': stock.get('industry'),
-                            'market': stock.get('market'),
-                            'total_shares': stock.get('total_shares')
-                        })
-                
-                return {
-                    'success': True,
-                    'data': industry_stocks[:limit],  # 限制返回数量
-                    'total_count': len(industry_stocks),
-                    'data_source': DataSource(
-                        name="A股股票列表API",
-                        endpoint=endpoint,
-                        version="v1.1.0"
-                    )
-                }
-            else:
-                raise AShareAPIError("API响应中缺少data字段")
-                
-        except Exception as e:
-            logger.error(f"获取行业股票列表失败 {industry}: {e}")
-            raise AShareAPIError(f"获取行业股票列表失败: {str(e)}")
-    
     async def batch_get_financial_ratios(self, symbols: List[str]) -> Dict[str, Dict[str, Any]]:
         """批量获取财务比率"""
         results = {}
@@ -455,6 +412,348 @@ class AShareToolkit:
         except Exception as e:
             logger.error(f"初始化股票数据失败 {symbol}: {e}")
             raise AShareAPIError(f"初始化股票数据失败: {str(e)}")
+    
+    # ==================== 申万行业数据API方法 ====================
+    
+    async def get_sw_industry_info(self, level: int, industry_codes: List[str] = None, 
+                                 parent_codes: List[str] = None, status: str = "active",
+                                 limit: int = 100, offset: int = 0) -> Dict[str, Any]:
+        """获取申万行业分类信息"""
+        try:
+            if level not in [1, 2, 3]:
+                raise ValueError("行业级别必须是1、2或3")
+            
+            level_map = {1: "first", 2: "second", 3: "third"}
+            endpoint = f"/sw-industries/{level_map[level]}"
+            
+            params = {
+                'status': status,
+                'limit': limit,
+                'offset': offset
+            }
+            
+            if industry_codes:
+                params['industry_codes'] = ','.join(industry_codes)
+            if parent_codes:
+                params['parent_codes'] = ','.join(parent_codes)
+            
+            response = await self._make_request(endpoint, params)
+            
+            if 'data' in response:
+                industries_data = response['data']
+                
+                return {
+                    'success': True,
+                    'data': industries_data,
+                    'total_count': response.get('pagination', {}).get('total', len(industries_data)),
+                    'data_source': DataSource(
+                        name=f"申万{level}级行业API",
+                        endpoint=endpoint,
+                        version="v1.2.0"
+                    )
+                }
+            else:
+                return {
+                    'success': True,
+                    'data': [],
+                    'message': f"暂无申万{level}级行业数据",
+                    'data_source': DataSource(
+                        name=f"申万{level}级行业API",
+                        endpoint=endpoint,
+                        version="v1.2.0"
+                    )
+                }
+                
+        except Exception as e:
+            logger.error(f"获取申万行业信息失败 (级别{level}): {e}")
+            raise AShareAPIError(f"获取申万行业信息失败: {str(e)}")
+    
+    async def get_sw_industry_constituents(self, industry_codes: List[str], 
+                                         levels: List[int] = None, status: str = "active",
+                                         limit: int = 100, offset: int = 0) -> Dict[str, Any]:
+        """获取申万行业成分股"""
+        try:
+            if len(industry_codes) == 1:
+                # 单个行业查询
+                endpoint = f"/sw-industries/{industry_codes[0]}/constituents"
+                params = {
+                    'status': status,
+                    'limit': limit,
+                    'offset': offset
+                }
+            else:
+                # 批量行业查询
+                endpoint = "/sw-industries/constituents"
+                params = {
+                    'industry_codes': ','.join(industry_codes),
+                    'status': status,
+                    'limit': limit,
+                    'offset': offset
+                }
+                
+                if levels:
+                    params['levels'] = ','.join(map(str, levels))
+            
+            response = await self._make_request(endpoint, params)
+            
+            if 'data' in response:
+                constituents_data = response['data']
+                
+                return {
+                    'success': True,
+                    'data': constituents_data,
+                    'total_count': response.get('pagination', {}).get('total', len(constituents_data)),
+                    'data_source': DataSource(
+                        name="申万行业成分股API",
+                        endpoint=endpoint,
+                        version="v1.2.0"
+                    )
+                }
+            else:
+                return {
+                    'success': True,
+                    'data': [],
+                    'message': f"暂无申万行业成分股数据",
+                    'data_source': DataSource(
+                        name="申万行业成分股API",
+                        endpoint=endpoint,
+                        version="v1.2.0"
+                    )
+                }
+                
+        except Exception as e:
+            logger.error(f"获取申万行业成分股失败 {industry_codes}: {e}")
+            raise AShareAPIError(f"获取申万行业成分股失败: {str(e)}")
+    
+    async def get_stock_sw_industry_hierarchy(self, symbol: str) -> Dict[str, Any]:
+        """获取股票申万行业层级信息"""
+        try:
+            endpoint = f"/sw-industries/hierarchy/{symbol}"
+            response = await self._make_request(endpoint)
+            
+            if 'data' in response:
+                hierarchy_data = response['data']
+                
+                return {
+                    'success': True,
+                    'data': hierarchy_data,
+                    'data_source': DataSource(
+                        name="申万股票行业层级API",
+                        endpoint=endpoint,
+                        version="v1.2.0"
+                    )
+                }
+            else:
+                return {
+                    'success': True,
+                    'data': {},
+                    'message': f"暂无{symbol}的申万行业分类数据",
+                    'data_source': DataSource(
+                        name="申万股票行业层级API",
+                        endpoint=endpoint,
+                        version="v1.2.0"
+                    )
+                }
+                
+        except Exception as e:
+            logger.error(f"获取股票申万行业层级失败 {symbol}: {e}")
+            raise AShareAPIError(f"获取股票申万行业层级失败: {str(e)}")
+    
+    async def search_sw_industries(self, keyword: str, levels: List[int] = None,
+                                 exact_match: bool = False, limit: int = 20,
+                                 offset: int = 0) -> Dict[str, Any]:
+        """搜索申万行业"""
+        try:
+            endpoint = "/sw-industries/search"
+            params = {
+                'keyword': keyword,
+                'exact_match': exact_match,
+                'limit': limit,
+                'offset': offset
+            }
+            
+            if levels:
+                params['levels'] = ','.join(map(str, levels))
+            else:
+                params['levels'] = '1,2,3'  # 默认搜索所有级别
+            
+            response = await self._make_request(endpoint, params)
+            
+            if 'data' in response:
+                search_results = response['data']
+                
+                return {
+                    'success': True,
+                    'data': search_results,
+                    'total_count': response.get('pagination', {}).get('total', len(search_results)),
+                    'search_info': response.get('search_info', {}),
+                    'data_source': DataSource(
+                        name="申万行业搜索API",
+                        endpoint=endpoint,
+                        version="v1.2.0"
+                    )
+                }
+            else:
+                return {
+                    'success': True,
+                    'data': [],
+                    'message': f"未找到关键词'{keyword}'的相关行业",
+                    'data_source': DataSource(
+                        name="申万行业搜索API",
+                        endpoint=endpoint,
+                        version="v1.2.0"
+                    )
+                }
+                
+        except Exception as e:
+            logger.error(f"搜索申万行业失败 '{keyword}': {e}")
+            raise AShareAPIError(f"搜索申万行业失败: {str(e)}")
+    
+    async def analyze_sw_industry_constituents(self, industry_codes: List[str] = None,
+                                             levels: List[int] = None, 
+                                             analysis_type: str = "summary") -> Dict[str, Any]:
+        """分析申万行业成分股"""
+        try:
+            endpoint = "/sw-industries/constituents/analysis"
+            params = {
+                'analysis_type': analysis_type
+            }
+            
+            if industry_codes:
+                params['industry_codes'] = ','.join(industry_codes)
+            if levels:
+                params['levels'] = ','.join(map(str, levels))
+            else:
+                params['levels'] = '1,2,3'  # 默认分析所有级别
+            
+            response = await self._make_request(endpoint, params)
+            
+            if 'data' in response:
+                analysis_data = response['data']
+                
+                return {
+                    'success': True,
+                    'data': analysis_data,
+                    'data_source': DataSource(
+                        name="申万行业成分股分析API",
+                        endpoint=endpoint,
+                        version="v1.2.0"
+                    )
+                }
+            else:
+                return {
+                    'success': True,
+                    'data': {},
+                    'message': "暂无申万行业成分股分析数据",
+                    'data_source': DataSource(
+                        name="申万行业成分股分析API",
+                        endpoint=endpoint,
+                        version="v1.2.0"
+                    )
+                }
+                
+        except Exception as e:
+            logger.error(f"分析申万行业成分股失败: {e}")
+            raise AShareAPIError(f"分析申万行业成分股失败: {str(e)}")
+    
+    async def get_sw_industry_competitors(self, symbol: str, limit: int = 20) -> Dict[str, Any]:
+        """获取基于申万行业分类的竞争对手"""
+        try:
+            # 1. 首先获取股票的申万行业层级
+            hierarchy_result = await self.get_stock_sw_industry_hierarchy(symbol)
+            
+            if not hierarchy_result.get('success') or not hierarchy_result.get('data'):
+                raise AShareAPIError(f"无法获取{symbol}的申万行业分类信息")
+            
+            hierarchy = hierarchy_result['data'].get('hierarchy', {})
+            
+            # 2. 优先使用三级行业，然后二级，最后一级
+            industry_code = None
+            industry_level = None
+            
+            for level in [3, 2, 1]:
+                level_key = f'level_{level}'
+                if level_key in hierarchy and hierarchy[level_key]:
+                    industry_code = hierarchy[level_key].get('industry_code')
+                    industry_level = level
+                    break
+            
+            if not industry_code:
+                raise AShareAPIError(f"无法获取{symbol}的有效申万行业代码")
+            
+            # 3. 获取同行业成分股
+            constituents_result = await self.get_sw_industry_constituents([industry_code])
+            
+            if not constituents_result.get('success'):
+                raise AShareAPIError(f"获取申万行业成分股失败: {industry_code}")
+            
+            constituents = constituents_result.get('data', [])
+            
+            # 4. 过滤掉目标股票本身，并格式化数据
+            competitors = []
+            for constituent in constituents:
+                if constituent.get('symbol') != symbol and len(competitors) < limit:
+                    competitors.append({
+                        'symbol': constituent.get('symbol'),
+                        'name': constituent.get('name', ''),
+                        'industry_code': industry_code,
+                        'industry_name': hierarchy[f'level_{industry_level}'].get('industry_name', ''),
+                        'industry_level': industry_level
+                    })
+            
+            return {
+                'success': True,
+                'data': competitors,
+                'industry_info': {
+                    'industry_code': industry_code,
+                    'industry_name': hierarchy[f'level_{industry_level}'].get('industry_name', ''),
+                    'industry_level': industry_level,
+                    'total_constituents': len(constituents)
+                },
+                'data_source': DataSource(
+                    name="申万行业竞争对手分析",
+                    endpoint="/sw-industries/constituents",
+                    version="v1.2.0"
+                )
+            }
+            
+        except Exception as e:
+            logger.error(f"获取申万行业竞争对手失败 {symbol}: {e}")
+            raise AShareAPIError(f"申万行业竞争对手分析失败: {str(e)}")
+    
+    async def batch_get_sw_industry_hierarchies(self, symbols: List[str]) -> Dict[str, Dict[str, Any]]:
+        """批量获取股票申万行业层级"""
+        results = {}
+        
+        # 使用信号量控制并发数
+        semaphore = asyncio.Semaphore(5)  # 最多5个并发请求
+        
+        async def get_single_hierarchy(symbol: str):
+            async with semaphore:
+                try:
+                    result = await self.get_stock_sw_industry_hierarchy(symbol)
+                    return symbol, result
+                except Exception as e:
+                    logger.warning(f"获取{symbol}申万行业层级失败: {e}")
+                    return symbol, {'success': False, 'error': str(e)}
+        
+        # 并发执行所有请求
+        tasks = [get_single_hierarchy(symbol) for symbol in symbols]
+        completed_results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # 整理结果
+        for result in completed_results:
+            if isinstance(result, Exception):
+                logger.error(f"批量获取申万行业层级时发生异常: {result}")
+                continue
+            
+            symbol, data = result
+            if data.get('success'):
+                results[symbol] = data.get('data', {})
+            else:
+                results[symbol] = {}
+        
+        return results
     
     async def get_initialization_status(self, request_id: str) -> Dict[str, Any]:
         """查询数据初始化状态"""

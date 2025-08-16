@@ -407,6 +407,269 @@ class MCPToolkit:
             logger.error(f"MCP获取指数成分股失败 {index_code}: {e}")
             return {'success': False, 'error': str(e)}
     
+    # ==================== 申万行业MCP工具方法 ====================
+    
+    async def get_sw_industry_info_mcp(self, level: int, industry_codes: List[str] = None,
+                                     parent_codes: List[str] = None) -> Dict[str, Any]:
+        """获取申万行业信息 (MCP工具)"""
+        if not self.enabled:
+            return {'success': False, 'message': 'MCP服务未启用'}
+        
+        try:
+            arguments = {
+                'level': level,
+                'status': 'active',
+                'limit': 100,
+                'offset': 0
+            }
+            
+            if industry_codes:
+                arguments['industry_codes'] = industry_codes
+            if parent_codes:
+                arguments['parent_codes'] = parent_codes
+            
+            result = await self._call_tool('get_sw_industry_info', arguments)
+            
+            return {
+                'success': True,
+                'data': result.get('content', [{}])[0].get('text', ''),
+                'data_source': DataSource(
+                    name="MCP申万行业信息工具",
+                    endpoint=self.endpoint,
+                    version="2024-11-05"
+                )
+            }
+        except Exception as e:
+            logger.error(f"MCP获取申万行业信息失败 (级别{level}): {e}")
+            return {'success': False, 'error': str(e)}
+    
+    async def get_sw_industry_constituents_mcp(self, industry_codes: List[str], 
+                                             levels: List[int] = None) -> Dict[str, Any]:
+        """获取申万行业成分股 (MCP工具)"""
+        if not self.enabled:
+            return {'success': False, 'message': 'MCP服务未启用'}
+        
+        try:
+            arguments = {
+                'industry_codes': industry_codes,
+                'status': 'active',
+                'limit': 100,
+                'offset': 0
+            }
+            
+            if levels:
+                arguments['levels'] = levels
+            
+            result = await self._call_tool('get_sw_industry_constituents', arguments)
+            
+            return {
+                'success': True,
+                'data': result.get('content', [{}])[0].get('text', ''),
+                'data_source': DataSource(
+                    name="MCP申万行业成分股工具",
+                    endpoint=self.endpoint,
+                    version="2024-11-05"
+                )
+            }
+        except Exception as e:
+            logger.error(f"MCP获取申万行业成分股失败 {industry_codes}: {e}")
+            return {'success': False, 'error': str(e)}
+    
+    async def get_stock_industry_hierarchy_mcp(self, symbol: str) -> Dict[str, Any]:
+        """获取股票行业层级 (MCP工具)"""
+        if not self.enabled:
+            return {'success': False, 'message': 'MCP服务未启用'}
+        
+        try:
+            arguments = {
+                'symbol': symbol
+            }
+            
+            result = await self._call_tool('get_stock_industry_hierarchy', arguments)
+            
+            return {
+                'success': True,
+                'data': result.get('content', [{}])[0].get('text', ''),
+                'data_source': DataSource(
+                    name="MCP股票行业层级工具",
+                    endpoint=self.endpoint,
+                    version="2024-11-05"
+                )
+            }
+        except Exception as e:
+            logger.error(f"MCP获取股票行业层级失败 {symbol}: {e}")
+            return {'success': False, 'error': str(e)}
+    
+    async def analyze_industry_constituents_mcp(self, industry_codes: List[str] = None,
+                                              levels: List[int] = None,
+                                              analysis_type: str = "summary") -> Dict[str, Any]:
+        """分析行业成分股 (MCP工具)"""
+        if not self.enabled:
+            return {'success': False, 'message': 'MCP服务未启用'}
+        
+        try:
+            arguments = {
+                'analysis_type': analysis_type,
+                'include_inactive': False
+            }
+            
+            if industry_codes:
+                arguments['industry_codes'] = industry_codes
+            if levels:
+                arguments['levels'] = levels
+            
+            result = await self._call_tool('analyze_industry_constituents', arguments)
+            
+            return {
+                'success': True,
+                'data': result.get('content', [{}])[0].get('text', ''),
+                'data_source': DataSource(
+                    name="MCP行业成分股分析工具",
+                    endpoint=self.endpoint,
+                    version="2024-11-05"
+                )
+            }
+        except Exception as e:
+            logger.error(f"MCP分析行业成分股失败: {e}")
+            return {'success': False, 'error': str(e)}
+    
+    # ==================== 数据初始化MCP工具方法 ====================
+    
+    async def initialize_stock_data_mcp(self, symbol: str, start_date: str = None,
+                                       end_date: str = None, force_update: bool = False) -> Dict[str, Any]:
+        """初始化股票数据 (MCP工具)"""
+        if not self.enabled:
+            return {'success': False, 'message': 'MCP服务未启用'}
+        
+        try:
+            arguments = {
+                'symbol': symbol,
+                'start_date': start_date or '1970-01-01',
+                'end_date': end_date or datetime.now().strftime('%Y-%m-%d'),
+                'force_update': force_update
+            }
+            
+            result = await self._call_tool('initialize_stock_data', arguments)
+            
+            return {
+                'success': True,
+                'data': result.get('content', [{}])[0].get('text', ''),
+                'data_source': DataSource(
+                    name="MCP股票数据初始化工具",
+                    endpoint=self.endpoint,
+                    version="2024-11-05"
+                )
+            }
+        except Exception as e:
+            logger.error(f"MCP初始化股票数据失败 {symbol}: {e}")
+            return {'success': False, 'error': str(e)}
+    
+    async def batch_initialize_stocks_mcp(self, symbols: List[str], start_date: str = None,
+                                        end_date: str = None, force_update: bool = False) -> Dict[str, Any]:
+        """批量初始化股票数据 (MCP工具)"""
+        if not self.enabled:
+            return {'success': False, 'message': 'MCP服务未启用'}
+        
+        try:
+            arguments = {
+                'symbols': symbols,
+                'start_date': start_date or '1970-01-01',
+                'end_date': end_date or datetime.now().strftime('%Y-%m-%d'),
+                'force_update': force_update
+            }
+            
+            result = await self._call_tool('batch_initialize_stocks', arguments)
+            
+            return {
+                'success': True,
+                'data': result.get('content', [{}])[0].get('text', ''),
+                'data_source': DataSource(
+                    name="MCP批量股票数据初始化工具",
+                    endpoint=self.endpoint,
+                    version="2024-11-05"
+                )
+            }
+        except Exception as e:
+            logger.error(f"MCP批量初始化股票数据失败 {symbols}: {e}")
+            return {'success': False, 'error': str(e)}
+    
+    async def get_initialization_status_mcp(self, request_id: str) -> Dict[str, Any]:
+        """获取初始化状态 (MCP工具)"""
+        if not self.enabled:
+            return {'success': False, 'message': 'MCP服务未启用'}
+        
+        try:
+            arguments = {
+                'request_id': request_id
+            }
+            
+            result = await self._call_tool('get_initialization_status', arguments)
+            
+            return {
+                'success': True,
+                'data': result.get('content', [{}])[0].get('text', ''),
+                'data_source': DataSource(
+                    name="MCP初始化状态工具",
+                    endpoint=self.endpoint,
+                    version="2024-11-05"
+                )
+            }
+        except Exception as e:
+            logger.error(f"MCP获取初始化状态失败 {request_id}: {e}")
+            return {'success': False, 'error': str(e)}
+    
+    async def check_rate_limit_mcp(self, symbol: str) -> Dict[str, Any]:
+        """检查速率限制 (MCP工具)"""
+        if not self.enabled:
+            return {'success': False, 'message': 'MCP服务未启用'}
+        
+        try:
+            arguments = {
+                'symbol': symbol
+            }
+            
+            result = await self._call_tool('check_rate_limit', arguments)
+            
+            return {
+                'success': True,
+                'data': result.get('content', [{}])[0].get('text', ''),
+                'data_source': DataSource(
+                    name="MCP速率限制检查工具",
+                    endpoint=self.endpoint,
+                    version="2024-11-05"
+                )
+            }
+        except Exception as e:
+            logger.error(f"MCP检查速率限制失败 {symbol}: {e}")
+            return {'success': False, 'error': str(e)}
+    
+    async def cleanup_old_records_mcp(self, hours_to_keep: int = 24, 
+                                    days_to_keep: int = 30) -> Dict[str, Any]:
+        """清理旧记录 (MCP工具)"""
+        if not self.enabled:
+            return {'success': False, 'message': 'MCP服务未启用'}
+        
+        try:
+            arguments = {
+                'hours_to_keep': hours_to_keep,
+                'days_to_keep': days_to_keep
+            }
+            
+            result = await self._call_tool('cleanup_old_records', arguments)
+            
+            return {
+                'success': True,
+                'data': result.get('content', [{}])[0].get('text', ''),
+                'data_source': DataSource(
+                    name="MCP清理旧记录工具",
+                    endpoint=self.endpoint,
+                    version="2024-11-05"
+                )
+            }
+        except Exception as e:
+            logger.error(f"MCP清理旧记录失败: {e}")
+            return {'success': False, 'error': str(e)}
+    
     def is_available(self) -> bool:
         """检查MCP服务是否可用"""
         return self.enabled and self.is_connected
@@ -464,6 +727,13 @@ class UnifiedDataToolkit:
             results['financial_reports'] = await self.ashare_toolkit.get_financial_reports(symbol)
             results['financial_ratios'] = await self.ashare_toolkit.get_financial_ratios(symbol)
             results['daily_quotes'] = await self.ashare_toolkit.get_daily_quotes(symbol, limit=30)
+            
+            # 新增：申万行业层级信息
+            results['sw_industry_hierarchy'] = await self.ashare_toolkit.get_stock_sw_industry_hierarchy(symbol)
+            
+            # 新增：基于申万分类的竞争对手
+            results['sw_industry_competitors'] = await self.ashare_toolkit.get_sw_industry_competitors(symbol)
+            
         except Exception as e:
             logger.error(f"A股API获取数据失败: {e}")
         
@@ -472,7 +742,62 @@ class UnifiedDataToolkit:
             try:
                 results['mcp_stock_detail'] = await self.mcp_toolkit.get_stock_detail(symbol)
                 results['mcp_technical_indicators'] = await self.mcp_toolkit.calculate_technical_indicators_mcp(symbol)
+                
+                # 新增：MCP申万行业数据
+                results['mcp_stock_industry_hierarchy'] = await self.mcp_toolkit.get_stock_industry_hierarchy_mcp(symbol)
+                
             except Exception as e:
                 logger.warning(f"MCP服务获取数据失败: {e}")
+        
+        return results
+    
+    async def get_comprehensive_industry_analysis(self, symbol: str) -> Dict[str, Any]:
+        """获取股票的综合行业分析数据"""
+        results = {}
+        
+        try:
+            # 1. 获取股票申万行业层级
+            hierarchy_result = await self.ashare_toolkit.get_stock_sw_industry_hierarchy(symbol)
+            if hierarchy_result.get('success'):
+                results['industry_hierarchy'] = hierarchy_result
+                
+                hierarchy = hierarchy_result['data'].get('hierarchy', {})
+                
+                # 2. 获取各级行业信息
+                for level in [1, 2, 3]:
+                    level_key = f'level_{level}'
+                    if level_key in hierarchy and hierarchy[level_key]:
+                        industry_code = hierarchy[level_key].get('industry_code')
+                        if industry_code:
+                            # 获取行业详细信息
+                            results[f'level_{level}_info'] = await self.ashare_toolkit.get_sw_industry_info(
+                                level=level, 
+                                industry_codes=[industry_code]
+                            )
+                            
+                            # 获取同行业成分股
+                            results[f'level_{level}_constituents'] = await self.ashare_toolkit.get_sw_industry_constituents(
+                                [industry_code], 
+                                levels=[level]
+                            )
+                
+                # 3. 获取基于申万分类的精准竞争对手
+                results['precise_competitors'] = await self.ashare_toolkit.get_sw_industry_competitors(symbol)
+                
+                # 4. 行业成分股分析
+                if hierarchy.get('level_1', {}).get('industry_code'):
+                    l1_code = hierarchy['level_1']['industry_code']
+                    results['industry_analysis'] = await self.ashare_toolkit.analyze_sw_industry_constituents([l1_code])
+            
+            # 5. MCP服务补充分析 (如果可用)
+            if self.mcp_toolkit and self.mcp_toolkit.is_available():
+                try:
+                    results['mcp_industry_analysis'] = await self.mcp_toolkit.analyze_industry_constituents_mcp()
+                except Exception as e:
+                    logger.warning(f"MCP行业分析获取失败: {e}")
+            
+        except Exception as e:
+            logger.error(f"综合行业分析失败: {e}")
+            results['error'] = str(e)
         
         return results

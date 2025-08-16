@@ -30,7 +30,7 @@ await system.close()
 
 from .graph.analysis_graph import (
     AShareAnalysisSystem,
-    create_analysis_system
+    analyze_ashare_stock
 )
 
 from .utils.analysis_states import (
@@ -48,10 +48,10 @@ from .utils.analysis_states import (
 from .config.analysis_config import ANALYSIS_CONFIG
 
 from .agents import (
-    FinancialAnalysisAgent,
-    IndustryAnalysisAgent,
-    ValuationAnalysisAgent,
-    ReportIntegrationAgent
+    create_financial_analysis_agent,
+    create_industry_analysis_agent,
+    create_valuation_analysis_agent,
+    create_report_integration_agent
 )
 
 from .tools import (
@@ -66,7 +66,7 @@ __author__ = "TradingAgents Team"
 __all__ = [
     # 主要系统
     "AShareAnalysisSystem",
-    "create_analysis_system",
+    "analyze_ashare_stock",
     
     # 状态和结果类
     "AnalysisState",
@@ -82,11 +82,11 @@ __all__ = [
     # 配置
     "ANALYSIS_CONFIG",
     
-    # Agent类
-    "FinancialAnalysisAgent",
-    "IndustryAnalysisAgent", 
-    "ValuationAnalysisAgent",
-    "ReportIntegrationAgent",
+    # Agent创建函数
+    "create_financial_analysis_agent",
+    "create_industry_analysis_agent", 
+    "create_valuation_analysis_agent",
+    "create_report_integration_agent",
     
     # 工具类
     "AShareToolkit",

@@ -387,6 +387,347 @@ curl -X GET "http://localhost:8000/api/v1/market/indices/constituents?index_code
 
 > 📝 **数据说明**: 当前系统中指数成分股数据为空，但端点功能正常。在有数据时，响应将包含成分股代码、权重、股数等完整信息。
 
+### 5. 申万行业数据端点 (SW Industries)
+
+#### 5.1 获取一级行业信息
+
+**端点**：`GET /api/v1/sw-industries/first`
+
+**描述**：获取申万一级行业分类信息列表
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 描述 | 示例 |
+|------|------|------|--------|------|------|
+| `industry_codes` | string | 否 | - | 行业代码列表，逗号分隔 | `801010,801020` |
+| `status` | string | 否 | `active` | 状态：active/inactive | `active` |
+| `limit` | integer | 否 | `100` | 每页大小 (1-1000) | `100` |
+| `offset` | integer | 否 | `0` | 偏移量 | `0` |
+
+**示例请求**：
+```bash
+# 获取所有一级行业
+curl -X GET "http://localhost:8000/api/v1/sw-industries/first"
+
+# 查询特定行业
+curl -X GET "http://localhost:8000/api/v1/sw-industries/first?industry_codes=801010,801020"
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "SW first-level industries retrieved successfully",
+  "data": [
+    {
+      "industry_code": "801010",
+      "industry_name": "农林牧渔",
+      "level": 1,
+      "parent_code": null,
+      "status": "active",
+      "is_active": true,
+      "data_source": "akshare",
+      "created_at": "2025-08-15T08:30:00Z",
+      "updated_at": "2025-08-15T08:30:00Z",
+      "last_sync": "2025-08-15T08:30:00Z"
+    }
+  ],
+  "pagination": {
+    "total": 31,
+    "limit": 100,
+    "offset": 0,
+    "has_next": false,
+    "has_prev": false
+  }
+}
+```
+
+#### 5.2 获取二级行业信息
+
+**端点**：`GET /api/v1/sw-industries/second`
+
+**描述**：获取申万二级行业分类信息列表
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 描述 | 示例 |
+|------|------|------|--------|------|------|
+| `industry_codes` | string | 否 | - | 行业代码列表，逗号分隔 | `801011,801012` |
+| `parent_codes` | string | 否 | - | 一级行业代码列表，逗号分隔 | `801010,801020` |
+| `status` | string | 否 | `active` | 状态：active/inactive | `active` |
+| `limit` | integer | 否 | `100` | 每页大小 (1-1000) | `100` |
+| `offset` | integer | 否 | `0` | 偏移量 | `0` |
+
+**示例请求**：
+```bash
+# 获取所有二级行业
+curl -X GET "http://localhost:8000/api/v1/sw-industries/second"
+
+# 获取农林牧渔下的二级行业
+curl -X GET "http://localhost:8000/api/v1/sw-industries/second?parent_codes=801010"
+```
+
+#### 5.3 获取三级行业信息
+
+**端点**：`GET /api/v1/sw-industries/third`
+
+**描述**：获取申万三级行业分类信息列表
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 描述 | 示例 |
+|------|------|------|--------|------|------|
+| `industry_codes` | string | 否 | - | 行业代码列表，逗号分隔 | `801011001,801011002` |
+| `parent_codes` | string | 否 | - | 二级行业代码列表，逗号分隔 | `801011,801012` |
+| `status` | string | 否 | `active` | 状态：active/inactive | `active` |
+| `limit` | integer | 否 | `100` | 每页大小 (1-1000) | `100` |
+| `offset` | integer | 否 | `0` | 偏移量 | `0` |
+
+**示例请求**：
+```bash
+# 获取所有三级行业
+curl -X GET "http://localhost:8000/api/v1/sw-industries/third"
+
+# 获取特定二级行业下的三级行业
+curl -X GET "http://localhost:8000/api/v1/sw-industries/third?parent_codes=801011"
+```
+
+#### 5.4 获取特定行业成分股
+
+**端点**：`GET /api/v1/sw-industries/{industry_code}/constituents`
+
+**描述**：获取指定申万行业的成分股列表
+
+**路径参数**：
+| 参数 | 类型 | 必填 | 描述 | 示例 |
+|------|------|------|------|------|
+| `industry_code` | string | 是 | 申万行业代码 | `801010` |
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 描述 | 示例 |
+|------|------|------|--------|------|------|
+| `status` | string | 否 | `active` | 成分股状态：active/inactive | `active` |
+| `limit` | integer | 否 | `100` | 每页大小 (1-1000) | `100` |
+| `offset` | integer | 否 | `0` | 偏移量 | `0` |
+
+**示例请求**：
+```bash
+# 获取农林牧渔行业成分股
+curl -X GET "http://localhost:8000/api/v1/sw-industries/801010/constituents"
+
+# 获取特定状态的成分股
+curl -X GET "http://localhost:8000/api/v1/sw-industries/801010/constituents?status=active&limit=50"
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "SW industry constituents retrieved successfully",
+  "data": [
+    {
+      "symbol": "000061",
+      "industry_code": "801010",
+      "industry_name": "农林牧渔",
+      "level": 1,
+      "status": "active",
+      "is_active": true,
+      "data_source": "akshare",
+      "created_at": "2025-08-15T08:30:00Z",
+      "updated_at": "2025-08-15T08:30:00Z",
+      "last_sync": "2025-08-15T08:30:00Z"
+    }
+  ],
+  "pagination": {
+    "total": 87,
+    "limit": 100,
+    "offset": 0,
+    "has_next": false,
+    "has_prev": false
+  }
+}
+```
+
+#### 5.5 批量获取行业成分股
+
+**端点**：`GET /api/v1/sw-industries/constituents`
+
+**描述**：批量获取多个申万行业的成分股列表
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 描述 | 示例 |
+|------|------|------|--------|------|------|
+| `industry_codes` | string | 是 | - | 行业代码列表，逗号分隔 | `801010,801020` |
+| `levels` | string | 否 | - | 行业级别列表，逗号分隔 | `1,2,3` |
+| `status` | string | 否 | `active` | 成分股状态：active/inactive | `active` |
+| `limit` | integer | 否 | `100` | 每页大小 (1-1000) | `100` |
+| `offset` | integer | 否 | `0` | 偏移量 | `0` |
+
+**示例请求**：
+```bash
+# 批量获取多个行业成分股
+curl -X GET "http://localhost:8000/api/v1/sw-industries/constituents?industry_codes=801010,801020"
+
+# 获取一级行业成分股
+curl -X GET "http://localhost:8000/api/v1/sw-industries/constituents?industry_codes=801010,801020&levels=1"
+```
+
+#### 5.6 行业成分股分析
+
+**端点**：`GET /api/v1/sw-industries/constituents/analysis`
+
+**描述**：对申万行业成分股进行统计分析，包括市值分布、成分股数量等
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 描述 | 示例 |
+|------|------|------|--------|------|------|
+| `industry_codes` | string | 否 | - | 行业代码列表，逗号分隔 | `801010,801020` |
+| `levels` | string | 否 | `1,2,3` | 行业级别列表，逗号分隔 | `1,2` |
+| `analysis_type` | string | 否 | `summary` | 分析类型：summary/detailed | `summary` |
+
+**示例请求**：
+```bash
+# 分析所有行业成分股分布
+curl -X GET "http://localhost:8000/api/v1/sw-industries/constituents/analysis"
+
+# 分析特定行业成分股
+curl -X GET "http://localhost:8000/api/v1/sw-industries/constituents/analysis?industry_codes=801010&analysis_type=detailed"
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "SW industry constituents analysis completed",
+  "data": {
+    "total_industries": 2,
+    "total_constituents": 156,
+    "analysis_date": "2025-08-15",
+    "industry_breakdown": [
+      {
+        "industry_code": "801010",
+        "industry_name": "农林牧渔",
+        "level": 1,
+        "constituent_count": 87,
+        "active_count": 85,
+        "inactive_count": 2
+      }
+    ],
+    "summary_statistics": {
+      "avg_constituents_per_industry": 78.0,
+      "max_constituents": 87,
+      "min_constituents": 69,
+      "active_rate": 0.987
+    }
+  }
+}
+```
+
+#### 5.7 股票行业层级查询
+
+**端点**：`GET /api/v1/sw-industries/hierarchy/{symbol}`
+
+**描述**：查询特定股票在申万行业分类中的完整层级信息
+
+**路径参数**：
+| 参数 | 类型 | 必填 | 描述 | 示例 |
+|------|------|------|------|------|
+| `symbol` | string | 是 | 6位数字股票代码 | `000001` |
+
+**示例请求**：
+```bash
+# 查询平安银行的行业层级
+curl -X GET "http://localhost:8000/api/v1/sw-industries/hierarchy/000001"
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "Stock industry hierarchy retrieved successfully",
+  "data": {
+    "symbol": "000001",
+    "hierarchy": {
+      "level_1": {
+        "industry_code": "801780",
+        "industry_name": "银行",
+        "level": 1
+      },
+      "level_2": {
+        "industry_code": "801780",
+        "industry_name": "银行",
+        "level": 2,
+        "parent_code": "801780"
+      },
+      "level_3": {
+        "industry_code": "801780001",
+        "industry_name": "银行",
+        "level": 3,
+        "parent_code": "801780"
+      }
+    },
+    "data_source": "akshare",
+    "last_sync": "2025-08-15T08:30:00Z"
+  }
+}
+```
+
+#### 5.8 行业代码/名称搜索
+
+**端点**：`GET /api/v1/sw-industries/search`
+
+**描述**：根据关键词搜索申万行业代码和名称
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 描述 | 示例 |
+|------|------|------|--------|------|------|
+| `keyword` | string | 是 | - | 搜索关键词（行业名称或代码） | `银行` |
+| `levels` | string | 否 | `1,2,3` | 搜索的行业级别 | `1,2` |
+| `exact_match` | boolean | 否 | `false` | 是否精确匹配 | `false` |
+| `limit` | integer | 否 | `20` | 每页大小 (1-100) | `20` |
+| `offset` | integer | 否 | `0` | 偏移量 | `0` |
+
+**示例请求**：
+```bash
+# 搜索银行相关行业
+curl -X GET "http://localhost:8000/api/v1/sw-industries/search?keyword=银行"
+
+# 精确匹配搜索
+curl -X GET "http://localhost:8000/api/v1/sw-industries/search?keyword=801780&exact_match=true"
+
+# 按级别搜索
+curl -X GET "http://localhost:8000/api/v1/sw-industries/search?keyword=金融&levels=1,2"
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "SW industries search completed",
+  "data": [
+    {
+      "industry_code": "801780",
+      "industry_name": "银行",
+      "level": 1,
+      "parent_code": null,
+      "status": "active",
+      "is_active": true,
+      "match_score": 1.0,
+      "match_field": "industry_name"
+    }
+  ],
+  "search_info": {
+    "keyword": "银行",
+    "total_matches": 3,
+    "search_time_ms": 15
+  },
+  "pagination": {
+    "total": 3,
+    "limit": 20,
+    "offset": 0,
+    "has_next": false,
+    "has_prev": false
+  }
+}
+```
+
 ### 3. 股票数据初始化端点 (Stock Data Initialization)
 
 #### 3.1 初始化股票数据
@@ -606,9 +947,52 @@ curl -X DELETE "http://localhost:8000/api/v1/initialization/cleanup?hours_to_kee
 }
 ```
 
-### 4. 财务数据端点 (Financial Data)
+### 4. 申万行业数据使用说明
 
-#### 4.1 获取财务报表数据
+#### 数据特点
+
+**申万行业分类体系**：
+- **一级行业**：31个大类，如农林牧渔、采掘、钢铁等
+- **二级行业**：104个中类，在一级行业基础上细分
+- **三级行业**：227个小类，最详细的行业分类
+- **成分股数据**：每个行业包含的股票列表，支持动态更新
+
+**错误处理说明**：
+
+| 错误场景 | HTTP状态码 | 错误信息 | 解决方案 |
+|---------|-----------|----------|----------|
+| 行业代码不存在 | 404 | Industry code not found | 检查行业代码格式和有效性 |
+| 股票代码格式错误 | 400 | Invalid stock symbol format | 使用6位数字股票代码 |
+| 参数验证失败 | 422 | Validation error | 检查参数类型和值范围 |
+| 无权限访问 | 403 | Access denied | 检查API认证信息 |
+
+**最佳实践建议**：
+
+1. **层级查询策略**
+   ```bash
+   # 推荐：先查询上级行业，再查询下级
+   curl -X GET "http://localhost:8000/api/v1/sw-industries/first?industry_codes=801010"
+   curl -X GET "http://localhost:8000/api/v1/sw-industries/second?parent_codes=801010"
+   ```
+
+2. **批量查询优化**
+   ```bash
+   # 优化：一次请求多个行业的成分股
+   curl -X GET "http://localhost:8000/api/v1/sw-industries/constituents?industry_codes=801010,801020,801030"
+   ```
+
+3. **搜索功能使用**
+   ```bash
+   # 模糊搜索：找到相关行业
+   curl -X GET "http://localhost:8000/api/v1/sw-industries/search?keyword=新能源"
+   
+   # 精确搜索：确认具体行业代码
+   curl -X GET "http://localhost:8000/api/v1/sw-industries/search?keyword=801010&exact_match=true"
+   ```
+
+### 6. 财务数据端点 (Financial Data)
+
+#### 6.1 获取财务报表数据
 
 **端点**：`GET /api/v1/financial/reports`
 
@@ -703,7 +1087,7 @@ curl -X GET "http://localhost:8000/api/v1/financial/reports?report_type=A&min_ro
 }
 ```
 
-#### 4.2 获取单只股票财务报表
+#### 6.2 获取单只股票财务报表
 
 **端点**：`GET /api/v1/financial/reports/{symbol}`
 
@@ -727,7 +1111,7 @@ curl -X GET "http://localhost:8000/api/v1/financial/reports?report_type=A&min_ro
 curl -X GET "http://localhost:8000/api/v1/financial/reports/000001?report_date=2023-12-31&report_type=A"
 ```
 
-#### 4.3 获取最新财务报表
+#### 6.3 获取最新财务报表
 
 **端点**：`GET /api/v1/financial/reports/latest`
 
@@ -750,7 +1134,7 @@ curl -X GET "http://localhost:8000/api/v1/financial/reports/latest?symbols=00000
 curl -X GET "http://localhost:8000/api/v1/financial/reports/latest?report_type=Q3&limit=100"
 ```
 
-#### 4.4 获取财务比率数据
+#### 6.4 获取财务比率数据
 
 **端点**：`GET /api/v1/financial/ratios`
 
@@ -804,7 +1188,7 @@ curl -X GET "http://localhost:8000/api/v1/financial/ratios?report_date=2023-12-3
 }
 ```
 
-#### 4.5 获取股票财务摘要
+#### 6.5 获取股票财务摘要
 
 **端点**：`GET /api/v1/financial/summary/{symbol}`
 
@@ -1413,6 +1797,63 @@ class AShareAPIClient {
             throw new Error(`Batch initialization failed: ${error.message}`);
         }
     }
+    
+    // 新增：申万行业数据查询方法
+    async getSWIndustries(level = 'first', options = {}) {
+        const { industryCodes, parentCodes, status = 'active', limit = 100, offset = 0 } = options;
+        
+        const params = { status, limit, offset };
+        if (industryCodes) params.industry_codes = industryCodes.join(',');
+        if (parentCodes) params.parent_codes = parentCodes.join(',');
+        
+        try {
+            const response = await this.client.get(`/sw-industries/${level}`, { params });
+            return response.data;
+        } catch (error) {
+            throw new Error(`SW industries query failed: ${error.message}`);
+        }
+    }
+    
+    async getSWIndustryConstituents(industryCode, options = {}) {
+        const { status = 'active', limit = 100, offset = 0 } = options;
+        
+        const params = { status, limit, offset };
+        
+        try {
+            const response = await this.client.get(`/sw-industries/${industryCode}/constituents`, { params });
+            return response.data;
+        } catch (error) {
+            throw new Error(`SW industry constituents query failed: ${error.message}`);
+        }
+    }
+    
+    async getStockIndustryHierarchy(symbol) {
+        try {
+            const response = await this.client.get(`/sw-industries/hierarchy/${symbol}`);
+            return response.data;
+        } catch (error) {
+            throw new Error(`Stock industry hierarchy query failed: ${error.message}`);
+        }
+    }
+    
+    async searchSWIndustries(keyword, options = {}) {
+        const { levels = '1,2,3', exactMatch = false, limit = 20, offset = 0 } = options;
+        
+        const params = { 
+            keyword, 
+            levels, 
+            exact_match: exactMatch,
+            limit, 
+            offset 
+        };
+        
+        try {
+            const response = await this.client.get('/sw-industries/search', { params });
+            return response.data;
+        } catch (error) {
+            throw new Error(`SW industries search failed: ${error.message}`);
+        }
+    }
 }
 
 // 使用示例
@@ -1446,6 +1887,30 @@ class AShareAPIClient {
                 }
             };
             await checkStatus();
+        }
+        
+        // 申万行业数据查询示例
+        console.log('=== 申万行业数据查询 ===');
+        
+        // 1. 查询银行相关行业
+        const bankIndustries = await client.searchSWIndustries('银行');
+        console.log('银行相关行业:', bankIndustries.data.map(item => 
+            `${item.industry_code} - ${item.industry_name} (L${item.level})`
+        ));
+        
+        // 2. 获取一级行业列表
+        const firstLevelIndustries = await client.getSWIndustries('first', { limit: 10 });
+        console.log('一级行业数量:', firstLevelIndustries.pagination.total);
+        
+        // 3. 查询平安银行的行业层级
+        const hierarchy = await client.getStockIndustryHierarchy('000001');
+        console.log('平安银行行业分类:', hierarchy.data.hierarchy);
+        
+        // 4. 获取银行业成分股
+        if (bankIndustries.data.length > 0) {
+            const bankCode = bankIndustries.data[0].industry_code;
+            const constituents = await client.getSWIndustryConstituents(bankCode, { limit: 5 });
+            console.log(`银行业成分股 (前5只):`, constituents.data.map(item => item.symbol));
         }
         
     } catch (error) {
@@ -1521,6 +1986,29 @@ curl -s -X POST "$API_BASE/initialization/stocks/batch/initialize" \
     "force_update": false
   }' | jq '.'
 check_response
+
+# 8. 申万行业数据查询示例
+echo "🏭 Querying SW industries data..."
+
+# 查询银行相关行业
+curl -s "$API_BASE/sw-industries/search?keyword=银行" | jq '.data[] | {industry_code, industry_name, level}'
+check_response
+
+# 获取一级行业列表（前10个）
+curl -s "$API_BASE/sw-industries/first?limit=10" | jq '.data[] | {industry_code, industry_name}'
+check_response
+
+# 查询平安银行的行业层级
+curl -s "$API_BASE/sw-industries/hierarchy/000001" | jq '.data.hierarchy'
+check_response
+
+# 获取银行业成分股（如果存在）
+BANK_INDUSTRY_CODE=$(curl -s "$API_BASE/sw-industries/search?keyword=银行&exact_match=false&limit=1" | jq -r '.data[0].industry_code // empty')
+if [ -n "$BANK_INDUSTRY_CODE" ]; then
+    echo "🏦 Getting bank industry constituents for code: $BANK_INDUSTRY_CODE"
+    curl -s "$API_BASE/sw-industries/$BANK_INDUSTRY_CODE/constituents?limit=5" | jq '.data[] | .symbol'
+    check_response
+fi
 
 echo "🎉 All requests completed successfully!"
 ```
@@ -1612,6 +2100,28 @@ http GET localhost:8000/api/v1/market/basic symbols==000001
 ```
 
 ## 更新日志
+
+### v1.2.0 (2025-08-15)
+
+**新增功能**：
+- ✅ 申万行业数据API接口 (SW Industries Data)
+- ✅ 一级行业信息查询 (`GET /api/v1/sw-industries/first`)
+- ✅ 二级行业信息查询 (`GET /api/v1/sw-industries/second`)
+- ✅ 三级行业信息查询 (`GET /api/v1/sw-industries/third`)
+- ✅ 特定行业成分股查询 (`GET /api/v1/sw-industries/{industry_code}/constituents`)
+- ✅ 批量行业成分股查询 (`GET /api/v1/sw-industries/constituents`)
+- ✅ 行业成分股分析 (`GET /api/v1/sw-industries/constituents/analysis`)
+- ✅ 股票行业层级查询 (`GET /api/v1/sw-industries/hierarchy/{symbol}`)
+- ✅ 行业代码/名称搜索 (`GET /api/v1/sw-industries/search`)
+- ✅ 增强版JavaScript和Python集成示例
+- ✅ 完整的curl脚本示例更新
+
+**申万行业数据特性**：
+- 完整三级行业分类体系（31+104+227个行业分类）
+- 支持模糊和精确搜索功能
+- 层级关系查询和成分股分析
+- 行业成分股统计分析功能
+- 与现有股票数据完整集成
 
 ### v1.1.0 (2025-08-14)
 
