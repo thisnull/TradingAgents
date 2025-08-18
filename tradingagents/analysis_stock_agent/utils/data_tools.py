@@ -23,7 +23,7 @@ class AShareDataTools:
         self.config = config
         self.base_url = config.get("a_share_api_url", "http://localhost:8000/api/v1")
         self.api_key = config.get("a_share_api_key", "")
-        self.timeout = config.get("a_share_api_timeout", 30)
+        self.timeout = config.get("a_share_api_timeout", 300)
         self.retry_times = config.get("a_share_api_retry_times", 3)
         
         # 创建session以复用连接
@@ -144,7 +144,7 @@ class AShareDataTools:
         """
         params = {
             "symbols": symbol,
-            "report_type": report_type,
+            # "report_type": report_type,
             "limit": limit
         }
         if start_date:
@@ -207,7 +207,7 @@ class AShareDataTools:
     def get_daily_quotes(self, symbol: str,
                         start_date: Optional[str] = None,
                         end_date: Optional[str] = None,
-                        limit: int = 252) -> List[Dict[str, Any]]:
+                        limit: int = 10000) -> List[Dict[str, Any]]:
         """
         获取日线行情数据
         
@@ -385,7 +385,7 @@ class AShareDataTools:
             return []
     
     def initialize_stock_data(self, symbol: str,
-                            start_date: str = "2020-01-01",
+                            start_date: str = "1970-01-01",
                             end_date: Optional[str] = None,
                             force_update: bool = False) -> Dict[str, Any]:
         """
@@ -532,3 +532,16 @@ class DataProcessor:
             logger.warning(f"Error calculating financial ratios: {str(e)}")
         
         return ratios
+    
+    if __name__ == "__main__":
+        data_tools = AShareDataTools({})
+        # print(data_tools.initialize_stock_data("002594"))
+        # print(data_tools.get_financial_reports("002594"))
+        print(data_tools.get_financial_reports("600900"))
+        # print(data_tools.get_stock_basic_info("002594"))
+        # print(data_tools.get_financial_reports("002594"))
+        # print(data_tools.get_latest_financial_report("002594"))
+        # print(data_tools.get_financial_summary("002594"))
+        # print(data_tools.get_daily_quotes("600900"))
+        # print(data_tools.get_shenwan_industry_info())
+        # print(data_tools.get_industry_constituents(["002594"]))
