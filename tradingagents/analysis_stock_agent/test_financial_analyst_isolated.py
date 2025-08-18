@@ -13,7 +13,7 @@ current_dir = Path(__file__).parent
 project_root = current_dir.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from tradingagents.analysis_stock_agent.utils.agent_test_framework import create_test_framework
+from utils.agent_test_framework import create_test_framework
 from tradingagents.analysis_stock_agent.agents.financial_analyst import create_financial_analyst
 from tradingagents.analysis_stock_agent.config.a_share_config import A_SHARE_DEFAULT_CONFIG
 
