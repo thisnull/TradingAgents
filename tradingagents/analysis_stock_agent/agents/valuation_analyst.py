@@ -471,7 +471,6 @@ def create_valuation_analyst(llm, toolkit, config):
             # 获取历史财务数据
             financial_reports = data_tools.get_financial_reports(
                 stock_code, 
-                report_type="A", 
                 limit=10  # 最近10年数据
             )
             

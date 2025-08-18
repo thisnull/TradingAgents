@@ -70,7 +70,6 @@ def create_financial_analyst(llm, toolkit, config):
             # 获取历史财务报告
             financial_reports = data_tools.get_financial_reports(
                 stock_code, 
-                report_type="A", 
                 limit=years
             )
             

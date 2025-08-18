@@ -125,7 +125,6 @@ class AShareDataTools:
             return []
     
     def get_financial_reports(self, symbol: str, 
-                            report_type: str = "A",
                             start_date: Optional[str] = None,
                             end_date: Optional[str] = None,
                             limit: int = 100) -> List[Dict[str, Any]]:
@@ -134,7 +133,6 @@ class AShareDataTools:
         
         Args:
             symbol: 股票代码
-            report_type: 报告类型 (Q1/Q2/Q3/A)
             start_date: 开始日期 (YYYY-MM-DD)
             end_date: 结束日期 (YYYY-MM-DD)
             limit: 返回数量
@@ -144,7 +142,6 @@ class AShareDataTools:
         """
         params = {
             "symbols": symbol,
-            # "report_type": report_type,
             "limit": limit
         }
         if start_date:
