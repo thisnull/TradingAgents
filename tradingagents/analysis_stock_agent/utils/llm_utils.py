@@ -1,13 +1,13 @@
 """
 LLM管理器模块
 
-负责管理和创建不同类型的语言模型实例，支持OpenAI、Anthropic等多种提供商。
+负责管理和创建不同类型的语言模型实例，主要支持Google Gemini和Ollama本地模型。
 """
 
 import logging
+import os
 from typing import Dict, Any, Optional, List
-from langchain_openai import ChatOpenAI
-from langchain_anthropic import ChatAnthropic
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.chat_models import ChatOllama
 
 logger = logging.getLogger(__name__)
@@ -28,50 +28,18 @@ class LLMManager:
         
         # 支持的模型配置
         self.supported_models = {
-            # OpenAI模型
-            "gpt-4o": {
-                "provider": "openai",
-                "model_name": "gpt-4o",
+            # Google Gemini 2.5系列模型
+            "gemini-2.5-pro": {
+                "provider": "gemini",
+                "model_name": "gemini-2.5-pro",
                 "temperature": 0.1,
-                "max_tokens": 4096
+                "max_tokens": 8192
             },
-            "gpt-4o-mini": {
-                "provider": "openai", 
-                "model_name": "gpt-4o-mini",
+            "gemini-2.5-flash": {
+                "provider": "gemini",
+                "model_name": "gemini-2.5-flash",
                 "temperature": 0.1,
-                "max_tokens": 4096
-            },
-            "o4-mini": {
-                "provider": "openai",
-                "model_name": "o1-mini",
-                "temperature": 1.0,  # o1模型不支持temperature调节
-                "max_tokens": 4096
-            },
-            "o1": {
-                "provider": "openai",
-                "model_name": "o1-preview",
-                "temperature": 1.0,
-                "max_tokens": 4096
-            },
-            
-            # Anthropic模型
-            "claude-3-opus": {
-                "provider": "anthropic",
-                "model_name": "claude-3-opus-20240229",
-                "temperature": 0.1,
-                "max_tokens": 4096
-            },
-            "claude-3-sonnet": {
-                "provider": "anthropic",
-                "model_name": "claude-3-sonnet-20240229", 
-                "temperature": 0.1,
-                "max_tokens": 4096
-            },
-            "claude-3-haiku": {
-                "provider": "anthropic",
-                "model_name": "claude-3-haiku-20240307",
-                "temperature": 0.1,
-                "max_tokens": 4096
+                "max_tokens": 8192
             },
             
             # Ollama本地模型
@@ -108,8 +76,8 @@ class LLMManager:
             
             # 检查模型是否支持
             if model_name not in self.supported_models:
-                logger.warning(f"Model {model_name} not in supported models, using default gpt-4o-mini")
-                model_name = "gpt-4o-mini"
+                logger.warning(f"Model {model_name} not in supported models, using default gemini-2.5-flash")
+                model_name = "gemini-2.5-flash"
             
             model_config = self.supported_models[model_name].copy()
             model_config.update(kwargs)  # 用传入的参数覆盖默认配置
@@ -117,10 +85,8 @@ class LLMManager:
             provider = model_config["provider"]
             
             # 创建LLM实例
-            if provider == "openai":
-                llm = self._create_openai_llm(model_config)
-            elif provider == "anthropic":
-                llm = self._create_anthropic_llm(model_config)
+            if provider == "gemini":
+                llm = self._create_gemini_llm(model_config)
             elif provider == "ollama":
                 llm = self._create_ollama_llm(model_config)
             else:
@@ -136,46 +102,40 @@ class LLMManager:
             logger.error(f"Error creating LLM {model_name}: {str(e)}")
             raise
     
-    def _create_openai_llm(self, config: Dict[str, Any]) -> ChatOpenAI:
-        """创建OpenAI LLM实例"""
-        openai_config = {
+    def _create_gemini_llm(self, config: Dict[str, Any]) -> ChatGoogleGenerativeAI:
+        """创建Google Gemini LLM实例"""
+        # 基础配置
+        gemini_config = {
             "model": config["model_name"],
             "temperature": config["temperature"],
-            "max_tokens": config["max_tokens"]
+            "max_output_tokens": config["max_tokens"]  # 使用 max_output_tokens 而不是 max_tokens
         }
         
-        # 添加API密钥和基础URL
-        api_key = self.config.get("openai_api_key") or self.config.get("OPENAI_API_KEY")
-        if api_key:
-            openai_config["api_key"] = api_key
+        # 按优先级获取API密钥
+        api_key = (
+            os.getenv("GOOGLE_API_KEY") or 
+            os.getenv("GEMINI_API_KEY") or
+            self.config.get("google_api_key") or 
+            self.config.get("gemini_api_key")
+        )
         
-        base_url = self.config.get("openai_base_url") or self.config.get("OPENAI_BASE_URL")
-        if base_url:
-            openai_config["base_url"] = base_url
+        if not api_key:
+            logger.error("Google API key not found in environment variables or config")
+            logger.error("Please set one of: GOOGLE_API_KEY, GEMINI_API_KEY")
+            raise ValueError("Missing Google API key. Please set GOOGLE_API_KEY environment variable.")
         
-        # 处理o1模型的特殊情况
-        if config["model_name"].startswith("o1"):
-            # o1模型不支持temperature参数
-            openai_config.pop("temperature", None)
-            # o1模型使用max_completion_tokens而不是max_tokens
-            openai_config["max_completion_tokens"] = openai_config.pop("max_tokens", 4096)
+        # 显式设置API密钥
+        gemini_config["google_api_key"] = api_key
         
-        return ChatOpenAI(**openai_config)
-    
-    def _create_anthropic_llm(self, config: Dict[str, Any]) -> ChatAnthropic:
-        """创建Anthropic LLM实例"""
-        anthropic_config = {
-            "model": config["model_name"],
-            "temperature": config["temperature"],
-            "max_tokens": config["max_tokens"]
-        }
+        # 记录模型配置信息
+        logger.info(f"Creating Gemini LLM with model: {config['model_name']}")
         
-        # 添加API密钥
-        api_key = self.config.get("anthropic_api_key") or self.config.get("ANTHROPIC_API_KEY")
-        if api_key:
-            anthropic_config["api_key"] = api_key
-        
-        return ChatAnthropic(**anthropic_config)
+        try:
+            return ChatGoogleGenerativeAI(**gemini_config)
+        except Exception as e:
+            logger.error(f"Failed to create Gemini LLM: {str(e)}")
+            logger.error("Please verify your GOOGLE_API_KEY is valid and has access to Gemini models")
+            raise
     
     def _create_ollama_llm(self, config: Dict[str, Any]) -> ChatOllama:
         """创建Ollama LLM实例"""
@@ -240,13 +200,11 @@ class LLMManager:
             验证结果字典
         """
         validation_results = {
-            "openai_configured": bool(
-                self.config.get("openai_api_key") or 
-                self.config.get("OPENAI_API_KEY")
-            ),
-            "anthropic_configured": bool(
-                self.config.get("anthropic_api_key") or 
-                self.config.get("ANTHROPIC_API_KEY")
+            "gemini_configured": bool(
+                os.getenv("GOOGLE_API_KEY") or 
+                os.getenv("GEMINI_API_KEY") or
+                self.config.get("google_api_key") or 
+                self.config.get("gemini_api_key")
             ),
             "ollama_configured": True  # Ollama通常不需要密钥
         }

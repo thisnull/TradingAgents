@@ -6,8 +6,9 @@ A股分析系统状态模型定义
 
 from typing import Annotated, Dict, List, Optional, Any
 from typing_extensions import TypedDict
-from langgraph.graph import MessagesState
+from langgraph.graph import MessagesState, add_messages
 from datetime import datetime
+import operator
 
 
 class StockAnalysisState(MessagesState):
@@ -33,7 +34,7 @@ class StockAnalysisState(MessagesState):
     integrated_analysis_report: Annotated[str, "综合分析报告"]
     
     # 分析元数据
-    analysis_stage: Annotated[str, "当前分析阶段"]
+    analysis_stage: Annotated[List[str], operator.add, "当前分析阶段列表"]
     confidence_score: Annotated[float, "分析置信度 (0-1)"]
     data_quality_score: Annotated[float, "数据质量评分 (0-1)"]
     analysis_depth: Annotated[str, "分析深度 (basic/standard/comprehensive)"]

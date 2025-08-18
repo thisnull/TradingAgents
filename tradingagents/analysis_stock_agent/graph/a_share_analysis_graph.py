@@ -139,7 +139,7 @@ class AShareAnalysisGraph:
                 "stock_name": stock_name or stock_code,
                 "analysis_date": analysis_date,
                 "analysis_depth": analysis_depth,
-                "analysis_stage": AnalysisStage.INITIALIZATION,
+                "analysis_stage": [AnalysisStage.INIT],
                 "messages": [],
                 "financial_analysis_report": "",
                 "industry_analysis_report": "",

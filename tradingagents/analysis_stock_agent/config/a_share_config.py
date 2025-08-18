@@ -26,11 +26,10 @@ A_SHARE_DEFAULT_CONFIG = {
     "mcp_timeout": 30,
     
     # === LLM配置覆盖 ===
-    "llm_provider": "openai",
-    "backend_url": "https://oned.lvtu.in",  # 用户自定义endpoint
-    "deep_think_llm": "gpt-4o-mini",       # 深度分析使用
-    "quick_think_llm": "gpt-4o-mini",      # 快速分析使用
-    "report_generation_llm": "gpt-4o",     # 报告生成使用
+    "llm_provider": "gemini",
+    "deep_think_llm": "gemini-2.5-pro",     # 深度分析使用
+    "quick_think_llm": "gemini-2.5-flash",  # 快速分析使用
+    "report_generation_llm": "gemini-2.5-pro",  # 报告生成使用
     
     # === Ollama本地配置 ===
     "ollama_enabled": True,
@@ -41,6 +40,7 @@ A_SHARE_DEFAULT_CONFIG = {
     # === 分析参数配置 ===
     "analysis_depth": "comprehensive",     # basic, standard, comprehensive
     "analysis_language": "chinese",        # 报告语言
+    "analysis_execution_mode": "serial",   # serial, parallel - 使用串行模式避免并发冲突
     "include_charts": True,                # 是否包含图表
     "include_data_sources": True,          # 是否包含数据来源
     "data_update_interval": "daily",       # 数据更新频率

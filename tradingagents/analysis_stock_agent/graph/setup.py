@@ -371,7 +371,11 @@ def validate_graph_config(config: Dict[str, Any]) -> Dict[str, Any]:
         validation_results["warnings"].append("A-share API key not configured")
     
     # 检查模型配置
-    supported_models = ["gpt-4o", "gpt-4o-mini", "o4-mini", "o1", "claude-3-opus", "claude-3-sonnet"]
+    supported_models = [
+        "gpt-4o", "gpt-4o-mini", "o4-mini", "o1", 
+        "claude-3-opus", "claude-3-sonnet",
+        "gemini-2.5-pro", "gemini-2.5-flash"  # 添加Gemini 2.5支持
+    ]
     
     for model_key in ["deep_think_llm", "quick_think_llm"]:
         model = config.get(model_key)
