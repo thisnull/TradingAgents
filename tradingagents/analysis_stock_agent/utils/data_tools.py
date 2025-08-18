@@ -128,7 +128,7 @@ class AShareDataTools:
                             report_type: str = "A",
                             start_date: Optional[str] = None,
                             end_date: Optional[str] = None,
-                            limit: int = 10) -> List[Dict[str, Any]]:
+                            limit: int = 100) -> List[Dict[str, Any]]:
         """
         获取财务报表数据
         
@@ -207,7 +207,7 @@ class AShareDataTools:
     def get_daily_quotes(self, symbol: str,
                         start_date: Optional[str] = None,
                         end_date: Optional[str] = None,
-                        limit: int = 10000) -> List[Dict[str, Any]]:
+                        limit: int = 1000) -> List[Dict[str, Any]]:
         """
         获取日线行情数据
         
@@ -537,11 +537,11 @@ class DataProcessor:
         data_tools = AShareDataTools({})
         # print(data_tools.initialize_stock_data("002594"))
         # print(data_tools.get_financial_reports("002594"))
-        print(data_tools.get_financial_reports("600900"))
+        print(len(data_tools.get_financial_reports("600900")))
         # print(data_tools.get_stock_basic_info("002594"))
         # print(data_tools.get_financial_reports("002594"))
         # print(data_tools.get_latest_financial_report("002594"))
         # print(data_tools.get_financial_summary("002594"))
-        # print(data_tools.get_daily_quotes("600900"))
+        print(len(data_tools.get_daily_quotes("600900")))
         # print(data_tools.get_shenwan_industry_info())
         # print(data_tools.get_industry_constituents(["002594"]))
