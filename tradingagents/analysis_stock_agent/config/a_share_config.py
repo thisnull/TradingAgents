@@ -27,9 +27,9 @@ A_SHARE_DEFAULT_CONFIG = {
     
     # === LLM配置覆盖 ===
     "llm_provider": "gemini",
-    "deep_think_llm": "gemini-2.5-pro",     # 深度分析使用
+    "deep_think_llm": "gemini-2.5-flash",     # 深度分析使用 (修复：gemini-2.5-pro返回空内容)
     "quick_think_llm": "gemini-2.5-flash",  # 快速分析使用
-    "report_generation_llm": "gemini-2.5-pro",  # 报告生成使用
+    "report_generation_llm": "gemini-2.5-flash",  # 报告生成使用 (修复：gemini-2.5-pro返回空内容)
     
     # === Ollama本地配置 ===
     "ollama_enabled": True,

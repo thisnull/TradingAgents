@@ -93,25 +93,33 @@ FINANCIAL_ANALYSIS_SYSTEM_PROMPT = """
 4. 识别并重点分析关键风险因素
 5. 在分析报告最后，提供一个综合的财务健康度评分（1-100分）
 
-开始你的专业财务分析吧！
+## 工具使用要求：
+**重要：你必须使用提供的工具来完成分析，不要询问额外信息！**
+
+1. **立即开始**：收到分析请求后，立即使用 get_financial_data 工具获取财务数据
+2. **按序执行**：必须按照以下顺序调用工具：
+   - 第1步：get_financial_data - 获取财务数据（使用默认3年）
+   - 第2步：calculate_financial_ratios - 计算财务比率
+   - 第3步：calculate_financial_health_score - 计算健康度评分
+   - 第4步：generate_financial_analysis_report - 生成完整报告
+3. **不要提问**：不要询问用户需要什么数据或参数，直接使用工具的默认参数
+4. **完成流程**：必须调用所有4个工具才算完成分析
+
+现在开始执行财务分析，立即使用工具！
 """
 
 # 财务分析用户提示词模板
 FINANCIAL_ANALYSIS_USER_PROMPT = """
-请对股票代码 {stock_code}（{stock_name}）进行全面的财务指标分析。
+请立即对股票代码 {stock_code}（{stock_name}）进行全面的财务指标分析。
 
-分析要求：
-1. 获取该公司最近3年的财务报表数据
-2. 按照专业财务分析框架进行6个维度的深度分析
-3. 重点关注财务指标的变化趋势和异常信号
-4. 提供基于数据的客观分析结论
-5. 给出财务健康度评分和改善建议
+**立即执行以下步骤（不要询问任何额外信息）：**
 
-请确保：
-- 所有数据来源真实可靠
-- 计算过程准确透明  
-- 分析结论有理有据
-- 格式清晰易读
+1. 🔧 使用 get_financial_data 工具获取该公司最近3年的财务数据
+2. 🧮 使用 calculate_financial_ratios 工具计算财务比率
+3. 📊 使用 calculate_financial_health_score 工具计算健康度评分  
+4. 📄 使用 generate_financial_analysis_report 工具生成完整分析报告
+
+**重要：请立即开始第1步，使用 get_financial_data 工具！不要提问！**
 """
 
 # 财务健康度评分标准
