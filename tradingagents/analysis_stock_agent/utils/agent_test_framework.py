@@ -6,10 +6,11 @@ Agent测试框架
 
 import os
 import sys
+import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from dotenv import load_dotenv
 
 # 添加项目根目录到路径
@@ -197,7 +198,209 @@ class AgentTestFramework:
                 "execution_time": (datetime.now() - self.test_start_time).total_seconds()
             }
             
-    def print_test_summary(self, test_results: list):
+    def save_analysis_report(self, agent_name: str, stock_code: str, 
+                           agent_result: Dict[str, Any], 
+                           output_dir: str = "test_reports") -> str:
+        """
+        保存Agent分析报告到文件
+        
+        Args:
+            agent_name: Agent名称
+            stock_code: 股票代码
+            agent_result: Agent分析结果
+            output_dir: 输出目录
+            
+        Returns:
+            保存的文件路径
+        """
+        try:
+            # 创建输出目录
+            report_dir = Path.cwd() / output_dir
+            report_dir.mkdir(exist_ok=True)
+            
+            # 生成文件名
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{agent_name}_{stock_code}_{timestamp}.md"
+            filepath = report_dir / filename
+            
+            # 构建报告内容
+            report_content = self._build_report_content(agent_name, stock_code, agent_result)
+            
+            # 保存文件
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(report_content)
+                
+            print(f"📄 分析报告已保存: {filepath}")
+            return str(filepath)
+            
+        except Exception as e:
+            print(f"❌ 保存报告失败: {str(e)}")
+            return ""
+    
+    def _build_report_content(self, agent_name: str, stock_code: str, 
+                            agent_result: Dict[str, Any]) -> str:
+        """
+        构建报告内容
+        
+        Args:
+            agent_name: Agent名称
+            stock_code: 股票代码
+            agent_result: Agent分析结果
+            
+        Returns:
+            格式化的报告内容
+        """
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        report = f"""# {agent_name} 分析报告
+
+## 📊 基本信息
+- **股票代码**: {stock_code}
+- **分析时间**: {timestamp}
+- **Agent类型**: {agent_name}
+- **分析深度**: 独立测试
+
+## 🤖 LLM消息与工具调用
+"""
+        
+        # 分析messages内容
+        if "messages" in agent_result and agent_result["messages"]:
+            message = agent_result["messages"][0]
+            
+            # 显示完整的LLM回复内容
+            if hasattr(message, 'content') and message.content:
+                report += f"""
+### 💬 LLM完整回复内容
+```
+{message.content}
+```
+"""
+            
+            # 工具调用信息
+            if hasattr(message, 'tool_calls') and message.tool_calls:
+                report += f"""
+### 🔧 工具调用详情
+共调用 {len(message.tool_calls)} 个工具:
+
+"""
+                for i, tool_call in enumerate(message.tool_calls, 1):
+                    report += f"""
+#### 工具调用 {i}
+- **工具名称**: {tool_call.get('name', 'Unknown')}
+- **工具ID**: {tool_call.get('id', 'Unknown')}
+- **参数**:
+```json
+{json.dumps(tool_call.get('args', {}), indent=2, ensure_ascii=False)}
+```
+"""
+
+        # ===== 核心部分：显示Agent分析报告原文 =====
+        report += """
+## 📊 Agent分析结果原文
+
+以下是Agent生成的完整分析报告内容：
+
+"""
+        
+        # 显示各类分析报告的完整原文
+        report_fields = [
+            ("financial_analysis_report", "📊 财务分析报告原文"),
+            ("industry_analysis_report", "🏭 行业分析报告原文"),
+            ("valuation_analysis_report", "💰 估值分析报告原文"),
+            ("comprehensive_analysis_report", "🎯 综合分析报告原文")
+        ]
+        
+        for field_key, field_title in report_fields:
+            if field_key in agent_result and agent_result[field_key]:
+                report_content = str(agent_result[field_key])
+                report += f"""
+### {field_title}
+
+{report_content}
+
+---
+
+"""
+        
+        # 显示其他重要数据的原文
+        data_fields = [
+            ("financial_data", "💰 财务数据"),
+            ("industry_data", "🏭 行业数据"),
+            ("key_financial_metrics", "📊 关键财务指标"),
+            ("key_industry_metrics", "🏭 关键行业指标"),
+            ("key_valuation_metrics", "💰 关键估值指标"),
+            ("integration_data", "🔗 整合数据"),
+            ("competitive_position", "🥇 竞争地位"),
+            ("investment_recommendation", "💡 投资建议"),
+            ("comprehensive_score", "📊 综合评分"),
+            ("final_conclusion", "🎯 最终结论")
+        ]
+        
+        has_data_section = False
+        data_section_content = ""
+        
+        for field_key, field_title in data_fields:
+            if field_key in agent_result and agent_result[field_key]:
+                if not has_data_section:
+                    has_data_section = True
+                    data_section_content += "## 📈 Agent产出的关键数据\n\n"
+                
+                data_content = agent_result[field_key]
+                
+                if isinstance(data_content, (dict, list)):
+                    data_section_content += f"""
+### {field_title}
+```json
+{json.dumps(data_content, indent=2, ensure_ascii=False)}
+```
+
+"""
+                else:
+                    data_section_content += f"""
+### {field_title}
+```
+{data_content}
+```
+
+"""
+        
+        if has_data_section:
+            report += data_section_content
+        
+        # 数据源信息
+        if "data_sources" in agent_result and agent_result["data_sources"]:
+            sources = agent_result["data_sources"]
+            report += f"""
+## 📚 数据来源
+```json
+{json.dumps(sources, indent=2, ensure_ascii=False)}
+```
+
+"""
+
+        # 元数据信息
+        meta_fields = ["analysis_stage", "last_updated", "analysis_completed"]
+        for field in meta_fields:
+            if field in agent_result:
+                value = agent_result[field]
+                report += f"""
+### 📋 {field}
+```
+{value}
+```
+
+"""
+        
+        report += f"""
+---
+**报告生成时间**: {timestamp}  
+**测试框架版本**: v2.0 (原文展示版)  
+**说明**: 本报告重点展示Agent输出的原始分析内容，便于评估分析质量
+"""
+        
+        return report
+    
+    def print_test_summary(self, test_results: List[Dict[str, Any]]):
         """
         打印测试总结
         

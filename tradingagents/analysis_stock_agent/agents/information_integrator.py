@@ -741,7 +741,7 @@ def create_information_integrator(llm, toolkit, config):
             return {
                 "messages": [result],
                 "comprehensive_analysis_report": comprehensive_report,
-                "analysis_stage": AnalysisStage.INTEGRATION,
+                "analysis_stage": AnalysisStage.INTEGRATION_ANALYSIS,
                 "comprehensive_score": comprehensive_score,
                 "investment_recommendation": investment_recommendation,
                 "integration_data": {},  # 从分析中提取

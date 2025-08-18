@@ -110,6 +110,21 @@ def test_financial_analyst_isolated():
                 if sources:
                     print(f"  📚 数据源列表: {sources}")
                     
+            # 保存分析报告（如果是有效股票代码且有实质内容）
+            if (test_state['stock_code'] and test_state['stock_code'] != "INVALID" and 
+                "financial_analysis_report" in agent_result):
+                
+                try:
+                    report_path = framework.save_analysis_report(
+                        agent_name="财务分析Agent",
+                        stock_code=test_state['stock_code'],
+                        agent_result=agent_result
+                    )
+                    if report_path:
+                        print(f"  📄 详细分析报告已保存: {report_path}")
+                except Exception as e:
+                    print(f"  ⚠️  保存报告失败: {str(e)}")
+                    
             return True
         else:
             print(f"\n💥 测试失败原因:")
@@ -184,6 +199,23 @@ def test_financial_analyst_tools():
             )
             
             test_results.append(result)
+            
+            # 保存分析报告（如果测试成功且有分析报告）
+            if (result["success"] and scenario["stock_code"] and 
+                scenario["stock_code"] not in ["", "INVALID"]):
+                agent_result = result["result"]
+                if "financial_analysis_report" in agent_result:
+                    try:
+                        report_path = framework.save_analysis_report(
+                            agent_name=f"财务分析Agent-{scenario['name']}",
+                            stock_code=scenario["stock_code"],
+                            agent_result=agent_result
+                        )
+                        if report_path:
+                            print(f"  📄 {scenario['name']}分析报告已保存: {report_path}")
+                    except Exception as e:
+                        print(f"  ⚠️  保存{scenario['name']}报告失败: {str(e)}")
+                
             
         # 打印测试总结
         framework.print_test_summary(test_results)

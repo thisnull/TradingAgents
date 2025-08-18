@@ -10,7 +10,7 @@ from datetime import datetime
 
 # 添加项目根目录到路径
 current_dir = Path(__file__).parent
-project_root = current_dir.parent.parent.parent
+project_root = current_dir.parent.parent
 sys.path.insert(0, str(project_root))
 
 from tradingagents.analysis_stock_agent.utils.agent_test_framework import create_test_framework
@@ -124,6 +124,21 @@ def test_industry_analyst_isolated():
                 print(f"  📚 数据源数量: {len(sources) if sources else 0}")
                 if sources:
                     print(f"  📚 数据源列表: {sources}")
+                    
+            # 保存分析报告（如果是有效股票代码且有实质内容）
+            if (test_state['stock_code'] and test_state['stock_code'] != "" and 
+                "industry_analysis_report" in agent_result):
+                
+                try:
+                    report_path = framework.save_analysis_report(
+                        agent_name="行业分析Agent", 
+                        stock_code=test_state['stock_code'],
+                        agent_result=agent_result
+                    )
+                    if report_path:
+                        print(f"  📄 详细分析报告已保存: {report_path}")
+                except Exception as e:
+                    print(f"  ⚠️  保存报告失败: {str(e)}")
                     
             return True
         else:

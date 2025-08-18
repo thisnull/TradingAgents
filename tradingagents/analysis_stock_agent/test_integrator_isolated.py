@@ -10,7 +10,7 @@ from datetime import datetime
 
 # 添加项目根目录到路径
 current_dir = Path(__file__).parent
-project_root = current_dir.parent.parent.parent
+project_root = current_dir.parent.parent
 sys.path.insert(0, str(project_root))
 
 from tradingagents.analysis_stock_agent.utils.agent_test_framework import create_test_framework
@@ -163,6 +163,22 @@ def test_information_integrator_isolated():
             if "analysis_completed" in agent_result:
                 completed = agent_result["analysis_completed"]
                 print(f"  ✅ 分析完成状态: {completed}")
+                
+            # 保存分析报告（如果是有效股票代码且有实质内容）
+            if (test_state['stock_code'] and test_state['stock_code'] != "" and 
+                "comprehensive_analysis_report" in agent_result and 
+                len(str(agent_result["comprehensive_analysis_report"])) > 100):
+                
+                try:
+                    report_path = framework.save_analysis_report(
+                        agent_name="信息整合Agent",
+                        stock_code=test_state['stock_code'], 
+                        agent_result=agent_result
+                    )
+                    if report_path:
+                        print(f"  📄 详细分析报告已保存: {report_path}")
+                except Exception as e:
+                    print(f"  ⚠️  保存报告失败: {str(e)}")
                     
             return True
         else:
@@ -391,6 +407,19 @@ def test_integrator_comprehensive():
                 expected_score_range = (75, 95)  # 基于良好的财务和行业数据
                 is_reasonable = expected_score_range[0] <= score <= expected_score_range[1]
                 print(f"  📊 评分合理性: {'✅ 合理' if is_reasonable else '⚠️  可能偏离'}")
+                
+            # 保存综合测试分析报告
+            if "comprehensive_analysis_report" in agent_result:
+                try:
+                    report_path = framework.save_analysis_report(
+                        agent_name="信息整合Agent-综合测试",
+                        stock_code="002594",
+                        agent_result=agent_result
+                    )
+                    if report_path:
+                        print(f"  📄 综合测试详细报告已保存: {report_path}")
+                except Exception as e:
+                    print(f"  ⚠️  保存综合测试报告失败: {str(e)}")
                 
             return True
         else:
