@@ -13,10 +13,10 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.checkpoint.memory import MemorySaver
 
-from .utils.state_models import StockAnalysisState, AnalysisStage, AnalysisDepth
-from .config.a_share_config import A_SHARE_DEFAULT_CONFIG
-from .utils.llm_utils import LLMManager
-from .graph.setup import (
+from ..utils.state_models import StockAnalysisState, AnalysisStage, AnalysisDepth
+from ..config.a_share_config import A_SHARE_DEFAULT_CONFIG
+from ..utils.llm_utils import LLMManager
+from .setup import (
     create_analysis_graph, 
     add_graph_edges, 
     create_conditional_edges,
