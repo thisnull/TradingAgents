@@ -42,7 +42,7 @@ class LLMManager:
                 "provider": "gemini",
                 "model_name": "gemini-2.5-flash",
                 "temperature": 0.1,
-                "max_tokens": 8192
+                "max_tokens": 16384  # 修复报告截断：从8192增加到16384支持完整中文报告
             },
             
             # Ollama本地模型
