@@ -2,7 +2,7 @@
 
 ## 🚀 服务概述
 
-ashare-data MCP (Model Context Protocol) 服务是一个专业的中国股市数据分析平台，为AI Agent提供21个强大的金融数据工具。我们的服务采用SaaS模式部署，您无需自行搭建服务器，只需要连接我们提供的MCP端点即可获取全面的A股数据分析能力。
+ashare-data MCP (Model Context Protocol) 服务是一个专业的中国股市数据分析平台，为AI Agent提供23个强大的金融数据工具。我们的服务采用SaaS模式部署，您无需自行搭建服务器，只需要连接我们提供的MCP端点即可获取全面的A股数据分析能力。
 
 ### 🌐 协议兼容性
 
@@ -30,7 +30,7 @@ ashare-data MCP (Model Context Protocol) 服务是一个专业的中国股市数
 |---------|---------|----------|
 | **股票基础数据** | 3个 | 股票信息查询、详情获取、市场筛选 |
 | **市场行情** | 2个 | 日线行情、技术指标分析 |
-| **财务分析** | 5个 | 财报查询、比率计算、趋势分析 |
+| **财务分析** | 7个 | 财报查询、比率计算、趋势分析、分红送配详情 |
 | **指数数据** | 2个 | 指数信息、成分股查询 |
 | **申万行业** | 4个 | 行业分类、成分股、层级查询、行业搜索 |
 | **数据初始化** | 5个 | 数据同步、状态监控、批量处理 |
@@ -364,9 +364,56 @@ const authHeaders = {
 }
 ```
 
+#### 10. get_dividend_detail - 分红送配详情查询
+**功能**: 获取股票分红送配详情数据
+
+**参数**:
+```json
+{
+  "symbols": ["000001", "000002"],        // 可选：股票代码列表
+  "start_date": "2023-01-01",            // 可选：报告期开始日期 (YYYY-MM-DD)
+  "end_date": "2023-12-31",              // 可选：报告期结束日期 (YYYY-MM-DD)
+  "announcement_start_date": "2024-01-01", // 可选：公告开始日期 (YYYY-MM-DD)
+  "announcement_end_date": "2024-06-30",   // 可选：公告结束日期 (YYYY-MM-DD)
+  "scheme_progress": "实施分配",           // 可选：方案进度筛选
+  "min_dividend_yield": 0.005,           // 可选：最小股息率
+  "max_dividend_yield": 0.050,           // 可选：最大股息率
+  "min_cash_dividend": 1.0,              // 可选：最小现金分红比例（每10股元）
+  "max_cash_dividend": 20.0,             // 可选：最大现金分红比例（每10股元）
+  "has_cash_dividend": true,             // 可选：是否有现金分红
+  "has_stock_bonus": false,              // 可选：是否有送转股
+  "limit": 100,                          // 可选：返回数量 (1-1000)
+  "offset": 0                            // 可选：分页偏移量
+}
+```
+
+**使用示例**:
+```
+查询2023年度股息率超过3%的所有股票分红送配详情
+```
+
+#### 11. get_dividend_detail_by_symbol - 单只股票分红送配详情
+**功能**: 查询特定股票的分红送配历史记录
+
+**参数**:
+```json
+{
+  "symbol": "000001",                    // 必需：股票代码
+  "start_date": "2023-01-01",           // 可选：报告期开始日期 (YYYY-MM-DD)
+  "end_date": "2023-12-31",             // 可选：报告期结束日期 (YYYY-MM-DD)
+  "limit": 10,                          // 可选：返回数量 (1-100)
+  "offset": 0                           // 可选：分页偏移量
+}
+```
+
+**使用示例**:
+```
+查询平安银行(000001)最近3年的分红送配详情和股息率变化
+```
+
 ### 📈 指数数据工具
 
-#### 10. get_indices - 指数信息查询
+#### 12. get_indices - 指数信息查询
 **功能**: 获取股票指数基础信息
 
 **参数**:
@@ -379,7 +426,7 @@ const authHeaders = {
 }
 ```
 
-#### 11. get_index_constituents - 指数成分股查询
+#### 13. get_index_constituents - 指数成分股查询
 **功能**: 获取指数的成分股列表
 
 **参数**:
@@ -393,7 +440,7 @@ const authHeaders = {
 
 ### 🏭 申万行业数据工具
 
-#### 18. get_sw_industry_info - 申万行业信息查询
+#### 14. get_sw_industry_info - 申万行业信息查询
 **功能**: 获取申万行业分类信息（支持一、二、三级）
 
 **参数**:
@@ -413,7 +460,7 @@ const authHeaders = {
 查询申万一级行业中的金融相关行业分类
 ```
 
-#### 19. get_sw_industry_constituents - 申万行业成分股查询
+#### 15. get_sw_industry_constituents - 申万行业成分股查询
 **功能**: 获取指定申万行业的成分股列表
 
 **参数**:
@@ -432,7 +479,7 @@ const authHeaders = {
 获取申万银行业一级行业的所有成分股票
 ```
 
-#### 20. get_stock_industry_hierarchy - 股票行业层级查询
+#### 16. get_stock_industry_hierarchy - 股票行业层级查询
 **功能**: 查询特定股票在申万行业分类中的完整层级信息
 
 **参数**:
@@ -447,7 +494,7 @@ const authHeaders = {
 查询平安银行(000001)在申万行业分类中的一、二、三级行业归属
 ```
 
-#### 21. analyze_industry_constituents - 行业成分股分析
+#### 17. analyze_industry_constituents - 行业成分股分析
 **功能**: 分析申万行业成分股的统计信息和分布情况
 
 **参数**:
@@ -467,7 +514,7 @@ const authHeaders = {
 
 ### 🔄 数据初始化工具
 
-#### 22. initialize_stock_data - 单只股票数据初始化
+#### 18. initialize_stock_data - 单只股票数据初始化
 **功能**: 初始化特定股票的全面数据
 
 **参数**:
@@ -480,7 +527,7 @@ const authHeaders = {
 }
 ```
 
-#### 23. batch_initialize_stocks - 批量股票数据初始化
+#### 19. batch_initialize_stocks - 批量股票数据初始化
 **功能**: 批量初始化多只股票数据
 
 **参数**:
@@ -493,7 +540,7 @@ const authHeaders = {
 }
 ```
 
-#### 24. get_initialization_status - 初始化状态查询
+#### 20. get_initialization_status - 初始化状态查询
 **功能**: 查询数据初始化任务的进度
 
 **参数**:
@@ -503,7 +550,7 @@ const authHeaders = {
 }
 ```
 
-#### 25. check_rate_limit - 速率限制检查
+#### 21. check_rate_limit - 速率限制检查
 **功能**: 检查特定股票的数据请求限制状态
 
 **参数**:
@@ -513,7 +560,7 @@ const authHeaders = {
 }
 ```
 
-#### 26. cleanup_old_records - 清理旧记录
+#### 22. cleanup_old_records - 清理旧记录
 **功能**: 清理过期的初始化记录和速率限制数据
 
 **参数**:
@@ -526,7 +573,7 @@ const authHeaders = {
 
 ### 📋 市场分析工具
 
-#### 27. analyze_market_trend - 市场趋势分析
+#### 23. analyze_market_trend - 市场趋势分析
 **功能**: 分析股票或指数的市场趋势
 
 **参数**:
