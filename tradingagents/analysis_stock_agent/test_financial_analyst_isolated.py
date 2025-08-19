@@ -31,8 +31,8 @@ def test_financial_analyst_isolated():
         return False
         
     try:
-        # 获取LLM实例
-        deep_think_llm = framework.get_test_llm("gemini-2.5-pro")
+        # 获取LLM实例 (修复：使用可工作的gemini-2.5-flash代替有问题的gemini-2.5-pro)
+        deep_think_llm = framework.get_test_llm("gemini-2.5-flash")
         print(f"✅ 获取深度思考LLM: {deep_think_llm}")
         
         # 创建财务分析Agent
@@ -151,8 +151,8 @@ def test_financial_analyst_tools():
         return False
         
     try:
-        # 获取LLM实例
-        deep_think_llm = framework.get_test_llm("gemini-2.5-pro")
+        # 获取LLM实例 (修复：使用可工作的gemini-2.5-flash代替有问题的gemini-2.5-pro)
+        deep_think_llm = framework.get_test_llm("gemini-2.5-flash")
         
         # 创建财务分析Agent（包含工具）
         financial_analyst_node = create_financial_analyst(
