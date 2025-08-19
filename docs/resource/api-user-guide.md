@@ -785,7 +785,8 @@ curl -X POST "http://localhost:8000/api/v1/initialization/stocks/000001/initiali
     "financial_reports", 
     "money_flow",
     "management_stock_changes",
-    "shareholder_stock_changes"
+    "shareholder_stock_changes",
+    "dividend_detail"
   ],
   "rate_limit_info": {
     "is_rate_limited": false,
@@ -1228,6 +1229,175 @@ curl -X GET "http://localhost:8000/api/v1/financial/summary/000001?years=5"
     "latest_current_ratio": "0.64"
   }
 }
+```
+
+#### 6.6 获取分红送配详情数据
+
+**端点**：`GET /api/v1/financial/dividend-detail`
+
+**描述**：获取股票分红送配详情数据列表，支持多种筛选条件
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 描述 | 示例 |
+|------|------|------|--------|------|------|
+| `symbols` | string | 否 | - | 股票代码列表，逗号分隔 | `000001,002594` |
+| `start_date` | string | 否 | - | 报告期开始日期 (YYYY-MM-DD) | `2023-01-01` |
+| `end_date` | string | 否 | - | 报告期结束日期 (YYYY-MM-DD) | `2023-12-31` |
+| `announcement_start_date` | string | 否 | - | 公告开始日期 (YYYY-MM-DD) | `2024-01-01` |
+| `announcement_end_date` | string | 否 | - | 公告结束日期 (YYYY-MM-DD) | `2024-06-30` |
+| `scheme_progress` | string | 否 | - | 方案进度筛选 | `实施分配` |
+| `min_dividend_yield` | decimal | 否 | - | 最小股息率 | `0.005` |
+| `max_dividend_yield` | decimal | 否 | - | 最大股息率 | `0.050` |
+| `min_cash_dividend` | decimal | 否 | - | 最小现金分红比例（每10股元） | `1.0` |
+| `max_cash_dividend` | decimal | 否 | - | 最大现金分红比例（每10股元） | `20.0` |
+| `has_cash_dividend` | boolean | 否 | - | 是否有现金分红 | `true` |
+| `has_stock_bonus` | boolean | 否 | - | 是否有送转股 | `false` |
+| `limit` | integer | 否 | `100` | 每页大小 (1-1000) | `100` |
+| `offset` | integer | 否 | `0` | 偏移量 | `0` |
+
+**示例请求**：
+```bash
+# 获取002594的分红送配记录
+curl -X GET "http://localhost:8000/api/v1/financial/dividend-detail?symbols=002594&limit=5"
+
+# 筛选2023年有现金分红的股票
+curl -X GET "http://localhost:8000/api/v1/financial/dividend-detail?start_date=2023-01-01&end_date=2023-12-31&has_cash_dividend=true"
+
+# 筛选高股息率股票（股息率>1%）
+curl -X GET "http://localhost:8000/api/v1/financial/dividend-detail?min_dividend_yield=0.01&limit=10"
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "Dividend details retrieved successfully",
+  "data": [
+    {
+      "id": 11,
+      "symbol": "002594",
+      "report_period": "2024-12-31",
+      "performance_disclosure_date": "2025-03-25",
+      "announcement_date": "2025-03-25",
+      "record_date": "2025-07-28",
+      "ex_dividend_date": "2025-07-29",
+      "latest_announcement_date": "2025-07-22",
+      "total_bonus_ratio": "20.0000",
+      "stock_bonus_ratio": "8.0000",
+      "stock_transfer_ratio": "12.0000",
+      "cash_dividend_ratio": "39.7400",
+      "cash_dividend_description": "10送8股转12股派39.74元(含税,扣税后34.966元)",
+      "dividend_yield": "0.011792",
+      "earnings_per_share": "13.8400",
+      "net_assets_per_share": "58.5566",
+      "capital_reserve_per_share": "20.8573",
+      "undistributed_profit_per_share": "33.9081",
+      "net_profit_growth_rate": "0.3400",
+      "total_share_capital": 5494665855,
+      "scheme_progress": "实施分配",
+      "data_source": "akshare",
+      "data_quality": "excellent",
+      "created_at": "2025-08-19T09:02:03.441637",
+      "updated_at": "2025-08-19T09:59:53.568549",
+      "last_sync": "2025-08-19T09:59:53.470573"
+    }
+  ],
+  "pagination": {
+    "total": 11,
+    "limit": 5,
+    "offset": 0,
+    "has_next": true,
+    "has_prev": false
+  }
+}
+```
+
+#### 6.7 获取单只股票分红送配详情
+
+**端点**：`GET /api/v1/financial/dividend-detail/{symbol}`
+
+**描述**：根据股票代码获取分红送配详情数据
+
+**路径参数**：
+| 参数 | 类型 | 必填 | 描述 | 示例 |
+|------|------|------|------|------|
+| `symbol` | string | 是 | 6位数字股票代码 | `002594` |
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 描述 | 示例 |
+|------|------|------|--------|------|------|
+| `start_date` | string | 否 | - | 报告期开始日期 (YYYY-MM-DD) | `2023-01-01` |
+| `end_date` | string | 否 | - | 报告期结束日期 (YYYY-MM-DD) | `2023-12-31` |
+| `limit` | integer | 否 | `10` | 每页大小 (1-100) | `10` |
+| `offset` | integer | 否 | `0` | 偏移量 | `0` |
+
+**示例请求**：
+```bash
+# 获取002594的分红送配历史
+curl -X GET "http://localhost:8000/api/v1/financial/dividend-detail/002594?limit=3"
+
+# 获取002594在2023年的分红送配记录
+curl -X GET "http://localhost:8000/api/v1/financial/dividend-detail/002594?start_date=2023-01-01&end_date=2023-12-31"
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "Dividend details for 002594 retrieved successfully",
+  "data": [
+    {
+      "id": 11,
+      "symbol": "002594",
+      "report_period": "2024-12-31",
+      "cash_dividend_ratio": "39.7400",
+      "dividend_yield": "0.011792",
+      "scheme_progress": "实施分配",
+      "data_source": "akshare",
+      "data_quality": "excellent"
+    }
+  ],
+  "pagination": {
+    "total": 3,
+    "limit": 3,
+    "offset": 0,
+    "has_next": false,
+    "has_prev": false
+  }
+}
+```
+
+#### 6.8 分红送配数据字段说明
+
+**重要时间节点**：
+- `performance_disclosure_date`: 业绩披露日期
+- `announcement_date`: 预案公告日
+- `record_date`: 股权登记日
+- `ex_dividend_date`: 除权除息日
+- `latest_announcement_date`: 最新公告日期
+
+**送转股份信息**：
+- `total_bonus_ratio`: 送转总比例（每10股送转股数）
+- `stock_bonus_ratio`: 送股比例（每10股送股数）
+- `stock_transfer_ratio`: 转股比例（每10股转股数）
+
+**现金分红信息**：
+- `cash_dividend_ratio`: 现金分红比例（每10股分红金额，元）
+- `cash_dividend_description`: 现金分红比例描述
+- `dividend_yield`: 股息率（小数形式）
+
+**财务指标**：
+- `earnings_per_share`: 每股收益（元）
+- `net_assets_per_share`: 每股净资产（元）
+- `capital_reserve_per_share`: 每股公积金（元）
+- `undistributed_profit_per_share`: 每股未分配利润（元）
+- `net_profit_growth_rate`: 净利润同比增长（%）
+
+**数据质量说明**：
+- `excellent`: 数据完整度 ≥ 95%，包含完整的分红信息和财务指标
+- `good`: 数据完整度 80-95%，包含主要分红信息
+- `normal`: 数据完整度 60-80%，基本分红信息可用
+- `poor`: 数据完整度 < 60%，可能存在缺失字段
 ```
 
 ## 统一响应格式
@@ -2100,6 +2270,31 @@ http GET localhost:8000/api/v1/market/basic symbols==000001
 ```
 
 ## 更新日志
+
+### v1.3.0 (2025-08-19)
+
+**新增功能**：
+- ✅ 分红送配详情数据API接口 (Dividend Detail Data)
+- ✅ 分红送配详情列表查询 (`GET /api/v1/financial/dividend-detail`)
+- ✅ 单只股票分红送配详情 (`GET /api/v1/financial/dividend-detail/{symbol}`)
+- ✅ 完整的分红送配筛选功能（按股息率、现金分红、送转股等）
+- ✅ 时间节点筛选（公告日期、除权除息日、股权登记日等）
+- ✅ 方案进度筛选和布尔筛选功能
+- ✅ 完整的Docker环境API测试验证
+
+**分红送配数据特性**：
+- 完整的分红送配时间节点数据
+- 现金分红和送转股详细信息
+- 股息率和每股财务指标
+- 多维度筛选和排序功能
+- 数据质量评级和元数据支持
+- 与现有财务数据完整集成
+
+**技术改进**：
+- 完整的Docker环境测试脚本
+- 增强的API错误处理和验证
+- 优化的分页和缓存机制
+- 完善的API文档和使用示例
 
 ### v1.2.0 (2025-08-15)
 

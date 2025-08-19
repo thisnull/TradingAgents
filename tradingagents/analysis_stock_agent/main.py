@@ -123,6 +123,21 @@ def save_analysis_report(stock_code: str, report: str, output_dir: str = "result
     Returns:
         保存的文件路径
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    # 验证输入参数
+    if not report or not isinstance(report, str):
+        logger.error(f"❌ 报告内容为空或非字符串类型: {type(report)}")
+        raise ValueError("报告内容不能为空")
+    
+    if not stock_code:
+        logger.error("❌ 股票代码为空")
+        raise ValueError("股票代码不能为空")
+    
+    # 记录报告信息
+    logger.info(f"📝 准备保存报告: 股票代码={stock_code}, 内容长度={len(report)}字符")
+    
     # 创建输出目录
     Path(output_dir).mkdir(exist_ok=True)
     
@@ -131,9 +146,30 @@ def save_analysis_report(stock_code: str, report: str, output_dir: str = "result
     filename = f"A股分析报告_{stock_code}_{timestamp}.md"
     filepath = Path(output_dir) / filename
     
-    # 保存报告
-    with open(filepath, 'w', encoding='utf-8') as f:
-        f.write(report)
+    try:
+        # 保存报告 - 确保完整写入
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(report)
+            f.flush()  # 强制刷新缓冲区
+        
+        # 验证保存结果
+        saved_size = filepath.stat().st_size
+        logger.info(f"✅ 报告保存成功: {filepath}")
+        logger.info(f"📊 文件大小: {saved_size} 字节 ({saved_size/1024:.2f} KB)")
+        
+        # 验证文件内容完整性
+        with open(filepath, 'r', encoding='utf-8') as f:
+            saved_content = f.read()
+        
+        if len(saved_content) != len(report):
+            logger.error(f"❌ 文件保存不完整！原始长度: {len(report)}, 保存长度: {len(saved_content)}")
+            raise Exception("报告保存不完整")
+        
+        logger.info(f"✅ 文件完整性验证通过: {len(saved_content)}字符")
+        
+    except Exception as e:
+        logger.error(f"❌ 保存报告失败: {str(e)}")
+        raise Exception(f"保存报告失败: {str(e)}")
     
     return str(filepath)
 
