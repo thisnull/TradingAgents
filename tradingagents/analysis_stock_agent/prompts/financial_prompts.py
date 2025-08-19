@@ -172,6 +172,77 @@ FINANCIAL_HEALTH_SCORING_CRITERIA = """
 - < 60分：财务状况堪忧
 """
 
+# 增强版财务分析报告提示词
+FINANCIAL_ANALYSIS_ENHANCED_REPORT_PROMPT = """基于以下多年历史财务分析数据，请生成一份专业、深入的财务分析报告：
+
+## 公司基本信息
+股票代码：{stock_code}
+股票名称：{stock_name}
+分析日期：{analysis_date}
+
+## 数据覆盖范围
+分析年限：{years_analyzed}年
+数据时间范围：{date_range}
+历史年报数量：{annual_reports_count}个
+趋势分析可用性：{trend_analysis_available}
+
+## 财务健康度评分
+总分：{health_score}/100分
+健康等级：{health_level}
+评分明细：{score_breakdown}
+
+## 多年趋势分析（核心亮点）
+### 营收趋势
+{revenue_trend}
+
+### 利润趋势
+{profit_trend}
+
+### ROE趋势
+{roe_trend}
+
+### 整体趋势评估
+{overall_assessment}
+
+## 最新期财务比率数据
+### 盈利能力指标
+{profitability_ratios}
+
+### 偿债能力指标  
+{leverage_ratios}
+
+### 运营能力指标
+{efficiency_ratios}
+
+### 现金流指标
+{cashflow_ratios}
+
+### 成长性指标
+{growth_ratios}
+
+### 股东回报和分红指标
+{dividend_ratios}
+
+## 历史财务数据
+### 最新财务报告
+{raw_financial_data}
+
+**重要分析要求（基于多年数据）：**
+1. **趋势分析为核心**：重点分析公司多年来的发展趋势，而非仅仅分析单年数据
+2. **历史对比**：将最新财务表现与历史数据进行对比，识别变化趋势和拐点
+3. **预测性洞察**：基于历史趋势预测未来可能的发展方向和潜在风险
+4. **深度解读**：解释每个财务指标变化背后的业务驱动因素
+5. **股东回报分析**：重点分析公司的分红政策、分红稳定性、股息率水平和分红增长趋势
+6. **投资建议**：结合趋势分析给出具体的投资建议和风险提示
+7. **专业判断**：展现对行业和公司深度理解的专业分析能力
+
+**请确保报告包含：**
+- 详细的多年趋势分析章节
+- 基于历史数据的预测性判断
+- 专门的股东回报和分红分析章节
+- 明确的投资建议和风险警示
+- 专业的财务分析深度和洞察力"""
+
 # 财务分析报告模板
 FINANCIAL_ANALYSIS_REPORT_TEMPLATE = """
 # {stock_name}（{stock_code}）财务指标分析报告
