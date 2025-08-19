@@ -51,19 +51,19 @@ def create_financial_analyst(llm, toolkit, config):
     
     # 创建财务分析工具
     @tool
-    def get_financial_data(stock_code: str, years: int = 3) -> Dict[str, Any]:
+    def get_financial_data(stock_code: str, years: int = 5) -> Dict[str, Any]:
         """
-        获取股票财务数据
+        获取股票财务数据（增强版：支持多年历史数据趋势分析）
         
         Args:
             stock_code: 股票代码
-            years: 历史年数
+            years: 历史年数，增加到5年以支持更好的趋势分析
             
         Returns:
-            财务数据字典
+            包含多年历史数据的财务数据字典
         """
         try:
-            logger.info(f"Getting financial data for {stock_code}")
+            logger.info(f"Getting comprehensive financial data for {stock_code} (last {years} years)")
             
             # 获取股票基础信息
             basic_info = data_tools.get_stock_basic_info(stock_code)
@@ -71,22 +71,52 @@ def create_financial_analyst(llm, toolkit, config):
             # 获取最新财务报告
             latest_report = data_tools.get_latest_financial_report(stock_code, "A")
             
-            # 获取历史财务报告
-            financial_reports = data_tools.get_financial_reports(
+            # 计算起始日期 - 获取过去N年的数据
+            from datetime import datetime, timedelta
+            current_year = datetime.now().year
+            start_year = current_year - years
+            start_date = f"{start_year}-01-01"
+            end_date = f"{current_year}-12-31"
+            
+            # 获取历史财务报告 - 使用日期范围和更大的limit确保获取完整历史数据
+            historical_reports = data_tools.get_financial_reports(
                 stock_code, 
-                limit=years
+                start_date=start_date,
+                end_date=end_date,
+                limit=years * 4  # 每年可能有季报+年报，所以乘以4确保获取完整数据
             )
             
-            # 获取财务摘要
+            # 获取年报数据（用于趋势分析）
+            annual_reports = []
+            if historical_reports:
+                annual_reports = [report for report in historical_reports if report.get('report_type') == 'A']
+                # 按年份排序，最新的在前
+                annual_reports.sort(key=lambda x: x.get('report_date', ''), reverse=True)
+            
+            # 获取财务摘要（支持指定年数）
             financial_summary = data_tools.get_financial_summary(stock_code, years)
+            
+            # 记录获取到的数据统计
+            logger.info(f"Retrieved data summary for {stock_code}:")
+            logger.info(f"  - Total historical reports: {len(historical_reports) if historical_reports else 0}")
+            logger.info(f"  - Annual reports: {len(annual_reports) if annual_reports else 0}")
+            logger.info(f"  - Date range: {start_date} to {end_date}")
             
             return {
                 "stock_code": stock_code,
                 "basic_info": basic_info,
                 "latest_report": latest_report,
-                "financial_reports": financial_reports,
+                "financial_reports": historical_reports,  # 完整历史数据
+                "annual_reports": annual_reports,  # 年报数据（用于趋势分析）
                 "financial_summary": financial_summary,
-                "data_source": "A股数据API"
+                "data_range": {
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    "years_requested": years,
+                    "total_reports": len(historical_reports) if historical_reports else 0,
+                    "annual_reports": len(annual_reports) if annual_reports else 0
+                },
+                "data_source": "A股数据API（多年历史数据）"
             }
             
         except Exception as e:
@@ -96,22 +126,29 @@ def create_financial_analyst(llm, toolkit, config):
     @tool
     def calculate_financial_ratios(financial_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        计算财务比率指标
+        计算财务比率指标（增强版：支持多年趋势分析）
         
         Args:
-            financial_data: 财务数据
+            financial_data: 包含多年历史数据的财务数据
             
         Returns:
-            财务比率字典
+            包含趋势分析的财务比率字典
         """
         try:
-            logger.info("Calculating financial ratios")
+            logger.info("Calculating comprehensive financial ratios with trend analysis")
             
             if "latest_report" not in financial_data or not financial_data["latest_report"]:
                 return {"error": "No latest financial report available"}
             
             latest_report = financial_data["latest_report"]
             financial_reports = financial_data.get("financial_reports", [])
+            annual_reports = financial_data.get("annual_reports", [])
+            
+            # 记录可用数据统计
+            logger.info(f"Available data for ratio calculation:")
+            logger.info(f"  - Latest report: {'Yes' if latest_report else 'No'}")
+            logger.info(f"  - Total reports: {len(financial_reports)}")
+            logger.info(f"  - Annual reports: {len(annual_reports)}")
             
             # 计算各类财务比率
             profitability = FinancialCalculator.calculate_profitability_ratios(latest_report)
@@ -120,10 +157,25 @@ def create_financial_analyst(llm, toolkit, config):
             efficiency = FinancialCalculator.calculate_efficiency_ratios(latest_report)
             cashflow = FinancialCalculator.calculate_cashflow_ratios(latest_report)
             
-            # 计算成长性指标（需要历史数据）
+            # 增强的成长性指标计算（使用年报数据进行多年趋势分析）
             growth = {}
-            if financial_reports:
+            trend_analysis = {}
+            
+            if annual_reports and len(annual_reports) >= 2:
+                # 使用年报数据进行趋势分析
+                growth = FinancialCalculator.calculate_growth_rates(annual_reports)
+                logger.info(f"Calculated growth rates from {len(annual_reports)} annual reports")
+                
+                # 多年趋势分析
+                trend_analysis = _analyze_multi_year_trends(annual_reports)
+                logger.info(f"Generated multi-year trend analysis")
+            elif financial_reports and len(financial_reports) >= 2:
+                # 如果年报数据不足，使用所有历史报告
                 growth = FinancialCalculator.calculate_growth_rates(financial_reports)
+                logger.info(f"Calculated growth rates from {len(financial_reports)} total reports")
+            else:
+                logger.warning("Insufficient historical data for growth rate calculation")
+                growth = {"note": "需要至少2年的历史数据进行趋势分析"}
             
             return {
                 "profitability_ratios": profitability,
@@ -132,12 +184,154 @@ def create_financial_analyst(llm, toolkit, config):
                 "efficiency_ratios": efficiency,
                 "cashflow_ratios": cashflow,
                 "growth_ratios": growth,
+                "trend_analysis": trend_analysis,  # 新增：多年趋势分析
+                "data_quality": {
+                    "annual_reports_count": len(annual_reports),
+                    "total_reports_count": len(financial_reports),
+                    "trend_analysis_available": len(annual_reports) >= 3,
+                    "growth_analysis_available": len(annual_reports) >= 2 or len(financial_reports) >= 2
+                },
                 "calculation_date": datetime.now().isoformat()
             }
             
         except Exception as e:
             logger.error(f"Error calculating financial ratios: {str(e)}")
             return {"error": str(e)}
+    
+    def _analyze_multi_year_trends(annual_reports: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        分析多年财务趋势
+        
+        Args:
+            annual_reports: 年报数据列表（按年份排序）
+            
+        Returns:
+            趋势分析结果
+        """
+        try:
+            if len(annual_reports) < 3:
+                return {"note": "需要至少3年数据进行趋势分析"}
+            
+            # 取前5年的数据进行分析
+            recent_reports = annual_reports[:5]
+            
+            trends = {
+                "revenue_trend": _calculate_trend(recent_reports, "total_revenue"),
+                "profit_trend": _calculate_trend(recent_reports, "net_profit"),
+                "asset_trend": _calculate_trend(recent_reports, "total_assets"),
+                "roe_trend": _calculate_trend(recent_reports, "roe"),
+                "debt_ratio_trend": _calculate_trend(recent_reports, "debt_to_asset_ratio")
+            }
+            
+            # 综合趋势评估
+            trends["overall_assessment"] = _assess_overall_trend(trends)
+            trends["years_analyzed"] = len(recent_reports)
+            trends["data_period"] = f"{recent_reports[-1].get('report_date', '')[:4]} - {recent_reports[0].get('report_date', '')[:4]}"
+            
+            return trends
+            
+        except Exception as e:
+            logger.error(f"Error in multi-year trend analysis: {str(e)}")
+            return {"error": str(e)}
+    
+    def _calculate_trend(reports: List[Dict[str, Any]], field: str) -> Dict[str, Any]:
+        """计算指定字段的趋势"""
+        try:
+            values = []
+            dates = []
+            
+            for report in reports:
+                if field in report and report[field] is not None:
+                    # 处理不同的数据类型
+                    value = report[field]
+                    if isinstance(value, str):
+                        try:
+                            value = float(value)
+                        except:
+                            continue
+                    elif isinstance(value, (int, float)):
+                        value = float(value)
+                    else:
+                        continue
+                    
+                    values.append(value)
+                    dates.append(report.get('report_date', '')[:4])
+            
+            if len(values) < 2:
+                return {"note": f"{field}数据不足"}
+            
+            # 计算趋势方向
+            if len(values) >= 3:
+                # 简单的趋势判断：比较最近值与最早值
+                recent_avg = sum(values[:2]) / 2  # 最近2年平均值
+                earlier_avg = sum(values[-2:]) / 2  # 较早2年平均值
+                
+                if recent_avg > earlier_avg * 1.1:  # 增长超过10%
+                    trend_direction = "上升"
+                elif recent_avg < earlier_avg * 0.9:  # 下降超过10%
+                    trend_direction = "下降"
+                else:
+                    trend_direction = "稳定"
+            else:
+                if values[0] > values[1]:
+                    trend_direction = "上升"
+                elif values[0] < values[1]:
+                    trend_direction = "下降"
+                else:
+                    trend_direction = "稳定"
+            
+            # 计算变化率
+            if len(values) >= 2:
+                change_rate = ((values[0] - values[-1]) / abs(values[-1])) * 100 if values[-1] != 0 else 0
+            else:
+                change_rate = 0
+            
+            return {
+                "direction": trend_direction,
+                "change_rate_percent": round(change_rate, 2),
+                "latest_value": values[0] if values else None,
+                "earliest_value": values[-1] if values else None,
+                "data_points": len(values),
+                "period": f"{dates[-1]}-{dates[0]}" if dates else ""
+            }
+            
+        except Exception as e:
+            return {"error": f"计算{field}趋势时出错: {str(e)}"}
+    
+    def _assess_overall_trend(trends: Dict[str, Any]) -> str:
+        """综合评估整体趋势"""
+        try:
+            positive_trends = 0
+            negative_trends = 0
+            
+            # 检查关键指标趋势
+            key_indicators = ["revenue_trend", "profit_trend", "roe_trend"]
+            
+            for indicator in key_indicators:
+                if indicator in trends and isinstance(trends[indicator], dict):
+                    direction = trends[indicator].get("direction", "")
+                    if direction == "上升":
+                        positive_trends += 1
+                    elif direction == "下降":
+                        negative_trends += 1
+            
+            # 债务比率趋势的特殊处理（下降是好事）
+            if "debt_ratio_trend" in trends and isinstance(trends["debt_ratio_trend"], dict):
+                debt_direction = trends["debt_ratio_trend"].get("direction", "")
+                if debt_direction == "下降":
+                    positive_trends += 0.5
+                elif debt_direction == "上升":
+                    negative_trends += 0.5
+            
+            if positive_trends > negative_trends:
+                return "整体向好"
+            elif negative_trends > positive_trends:
+                return "需要关注"
+            else:
+                return "表现稳定"
+                
+        except Exception:
+            return "趋势分析需要更多数据"
     
     @tool 
     def calculate_financial_health_score(ratios: Dict[str, Any]) -> Dict[str, Any]:
@@ -258,16 +452,16 @@ def create_financial_analyst(llm, toolkit, config):
     @tool
     def prepare_analysis_data_for_llm(analysis_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        准备分析数据供LLM生成智能报告
+        准备分析数据供LLM生成智能报告（增强版：包含趋势分析数据）
         
         Args:
-            analysis_data: 分析数据
+            analysis_data: 包含历史趋势的分析数据
             
         Returns:
-            格式化的分析数据字典
+            格式化的分析数据字典，包含多年趋势信息
         """
         try:
-            logger.info("Preparing analysis data for LLM report generation")
+            logger.info("Preparing enhanced analysis data for LLM report generation")
             
             stock_code = analysis_data.get("stock_code", "")
             stock_name = analysis_data.get("stock_name", "")
@@ -277,9 +471,12 @@ def create_financial_analyst(llm, toolkit, config):
             if basic_info and "name" in basic_info:
                 stock_name = basic_info["name"]
             
-            # 财务比率
+            # 财务比率和趋势分析
             ratios = analysis_data.get("financial_ratios", {})
             health_score_data = analysis_data.get("health_score", {})
+            
+            # 获取数据范围信息
+            data_range = analysis_data.get("data_range", {})
             
             # 准备结构化数据供LLM分析
             structured_data = {
@@ -288,6 +485,13 @@ def create_financial_analyst(llm, toolkit, config):
                     "stock_name": stock_name,
                     "analysis_date": datetime.now().strftime("%Y-%m-%d"),
                     "report_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                },
+                "data_coverage": {
+                    "years_analyzed": data_range.get("years_requested", 3),
+                    "date_range": f"{data_range.get('start_date', '')} 至 {data_range.get('end_date', '')}",
+                    "total_reports": data_range.get("total_reports", 0),
+                    "annual_reports": data_range.get("annual_reports", 0),
+                    "trend_analysis_available": ratios.get("data_quality", {}).get("trend_analysis_available", False)
                 },
                 "financial_health": {
                     "total_score": health_score_data.get("total_score", 0),
@@ -301,10 +505,24 @@ def create_financial_analyst(llm, toolkit, config):
                     "cashflow": ratios.get("cashflow_ratios", {}),
                     "growth": ratios.get("growth_ratios", {})
                 },
+                # 新增：多年趋势分析数据
+                "trend_analysis": ratios.get("trend_analysis", {}),
+                "historical_context": {
+                    "revenue_trend": ratios.get("trend_analysis", {}).get("revenue_trend", {}),
+                    "profit_trend": ratios.get("trend_analysis", {}).get("profit_trend", {}),
+                    "roe_trend": ratios.get("trend_analysis", {}).get("roe_trend", {}),
+                    "overall_assessment": ratios.get("trend_analysis", {}).get("overall_assessment", "数据不足")
+                },
                 "raw_financial_data": analysis_data.get("latest_report", {}),
-                "historical_reports": analysis_data.get("financial_reports", []),
+                "historical_reports": analysis_data.get("annual_reports", [])[:5],  # 限制为最近5年
                 "financial_summary": analysis_data.get("financial_summary", {})
             }
+            
+            # 记录准备的数据统计
+            logger.info(f"Prepared LLM data with:")
+            logger.info(f"  - Trend analysis: {structured_data['data_coverage']['trend_analysis_available']}")
+            logger.info(f"  - Historical reports: {len(structured_data['historical_reports'])}")
+            logger.info(f"  - Years covered: {structured_data['data_coverage']['years_analyzed']}")
             
             return structured_data
             
@@ -435,19 +653,38 @@ def create_financial_analyst(llm, toolkit, config):
                     prompt = ChatPromptTemplate.from_messages([
                         ("system", formatted_system_prompt),
                         ("human", """
-基于以下财务分析数据，请生成一份专业、深入的财务分析报告：
+基于以下多年历史财务分析数据，请生成一份专业、深入的财务分析报告：
 
 ## 公司基本信息
 股票代码：{stock_code}
 股票名称：{stock_name}
 分析日期：{analysis_date}
 
+## 数据覆盖范围
+分析年限：{years_analyzed}年
+数据时间范围：{date_range}
+历史年报数量：{annual_reports_count}个
+趋势分析可用性：{trend_analysis_available}
+
 ## 财务健康度评分
 总分：{health_score}/100分
 健康等级：{health_level}
 评分明细：{score_breakdown}
 
-## 财务比率数据
+## 多年趋势分析（核心亮点）
+### 营收趋势
+{revenue_trend}
+
+### 利润趋势
+{profit_trend}
+
+### ROE趋势
+{roe_trend}
+
+### 整体趋势评估
+{overall_assessment}
+
+## 最新期财务比率数据
 ### 盈利能力指标
 {profitability_ratios}
 
@@ -463,65 +700,109 @@ def create_financial_analyst(llm, toolkit, config):
 ### 成长性指标
 {growth_ratios}
 
-## 原始财务数据
+## 历史财务数据
+### 最新财务报告
 {raw_financial_data}
 
-**请基于以上真实数据，按照你的专业分析框架，生成一份深入、专业的财务分析报告。**
+**重要分析要求（基于多年数据）：**
+1. **趋势分析为核心**：重点分析公司多年来的发展趋势，而非仅仅分析单年数据
+2. **历史对比**：将最新财务表现与历史数据进行对比，识别变化趋势和拐点
+3. **预测性洞察**：基于历史趋势预测未来可能的发展方向和潜在风险
+4. **深度解读**：解释每个财务指标变化背后的业务驱动因素
+5. **投资建议**：结合趋势分析给出具体的投资建议和风险提示
+6. **专业判断**：展现对行业和公司深度理解的专业分析能力
 
-**重要要求：**
-1. 必须深度解读每个财务指标背后的经营含义
-2. 识别关键风险和机会
-3. 提供具体的投资建议和风险提示
-4. 展现AI的分析洞察能力，不要简单罗列数据
-5. 报告要有明确的结论和建议
+**请确保报告包含：**
+- 详细的多年趋势分析章节
+- 基于历史数据的预测性判断
+- 明确的投资建议和风险警示
+- 专业的财务分析深度和洞察力
                         """)
                     ])
                     
                     # 使用LLM生成报告
                     chain = prompt | llm
                     
-                    # 准备输入数据
+                    # 准备输入数据（增强版：包含趋势分析数据）
                     llm_input = {
                         "stock_code": stock_code,
                         "stock_name": stock_name,
                         "analysis_date": analysis_date,
+                        
+                        # 数据覆盖范围信息
+                        "years_analyzed": comprehensive_data.get("data_range", {}).get("years_requested", 5),
+                        "date_range": f"{comprehensive_data.get('data_range', {}).get('start_date', '')} 至 {comprehensive_data.get('data_range', {}).get('end_date', '')}",
+                        "annual_reports_count": comprehensive_data.get("data_range", {}).get("annual_reports", 0),
+                        "trend_analysis_available": "是" if financial_ratios.get("data_quality", {}).get("trend_analysis_available", False) else "否",
+                        
+                        # 财务健康度评分
                         "health_score": health_score.get("total_score", 0),
                         "health_level": health_score.get("health_level", "未知"),
                         "score_breakdown": json.dumps(health_score.get("score_breakdown", {}), ensure_ascii=False, indent=2),
+                        
+                        # 趋势分析数据
+                        "revenue_trend": json.dumps(financial_ratios.get("trend_analysis", {}).get("revenue_trend", {}), ensure_ascii=False, indent=2),
+                        "profit_trend": json.dumps(financial_ratios.get("trend_analysis", {}).get("profit_trend", {}), ensure_ascii=False, indent=2),
+                        "roe_trend": json.dumps(financial_ratios.get("trend_analysis", {}).get("roe_trend", {}), ensure_ascii=False, indent=2),
+                        "overall_assessment": financial_ratios.get("trend_analysis", {}).get("overall_assessment", "数据不足"),
+                        
+                        # 财务比率数据
                         "profitability_ratios": json.dumps(financial_ratios.get("profitability_ratios", {}), ensure_ascii=False, indent=2),
                         "leverage_ratios": json.dumps(financial_ratios.get("leverage_ratios", {}), ensure_ascii=False, indent=2),
                         "efficiency_ratios": json.dumps(financial_ratios.get("efficiency_ratios", {}), ensure_ascii=False, indent=2),
                         "cashflow_ratios": json.dumps(financial_ratios.get("cashflow_ratios", {}), ensure_ascii=False, indent=2),
                         "growth_ratios": json.dumps(financial_ratios.get("growth_ratios", {}), ensure_ascii=False, indent=2),
-                        "raw_financial_data": json.dumps(financial_data.get("latest_report", {}), ensure_ascii=False, indent=2)[:2000]  # 限制长度
+                        
+                        # 原始财务数据（限制长度）
+                        "raw_financial_data": json.dumps(financial_data.get("latest_report", {}), ensure_ascii=False, indent=2)[:3000]  # 增加到3000字符
                     }
                     
-                    # 验证输入数据完整性
-                    if not all([
+                    # 验证输入数据完整性（增强版）
+                    validation_passed = all([
                         llm_input.get("health_score", 0),
                         llm_input.get("profitability_ratios", "{}") != "{}",
                         llm_input.get("stock_code"),
-                        llm_input.get("stock_name")
-                    ]):
+                        llm_input.get("stock_name"),
+                        llm_input.get("years_analyzed", 0) > 0
+                    ])
+                    
+                    if not validation_passed:
                         logger.warning("⚠️ LLM输入数据不完整，可能影响报告质量")
                         logger.warning(f"健康度评分: {llm_input.get('health_score', 0)}")
                         logger.warning(f"盈利能力指标: {llm_input.get('profitability_ratios', '空')[:100]}")
+                        logger.warning(f"分析年限: {llm_input.get('years_analyzed', 0)}")
+                        logger.warning(f"趋势分析可用: {llm_input.get('trend_analysis_available', '否')}")
+                    else:
+                        logger.info("✅ 数据验证通过，包含多年历史数据和趋势分析")
                     
                     logger.debug(f"LLM输入数据检查完成，数据键: {list(llm_input.keys())}")
                     
-                    # 调用LLM生成智能分析报告
-                    logger.info(f"正在调用LLM生成分析报告，输入数据键: {list(llm_input.keys())}")
-                    logger.debug(f"LLM输入数据预览: stock_code={llm_input.get('stock_code')}, health_score={llm_input.get('health_score')}")
+                    # 调用LLM生成智能分析报告（增强版日志）
+                    logger.info(f"正在调用LLM生成增强版分析报告")
+                    logger.info(f"  - 输入数据键数量: {len(llm_input.keys())}")
+                    logger.info(f"  - 分析年限: {llm_input.get('years_analyzed', 0)}年")
+                    logger.info(f"  - 年报数量: {llm_input.get('annual_reports_count', 0)}个")
+                    logger.info(f"  - 趋势分析: {llm_input.get('trend_analysis_available', '否')}")
+                    logger.debug(f"LLM输入数据键列表: {list(llm_input.keys())}")
+                    logger.debug(f"基础数据: stock_code={llm_input.get('stock_code')}, health_score={llm_input.get('health_score')}")
                     
                     llm_result = chain.invoke(llm_input)
                     financial_report = llm_result.content
                     
-                    # 关键修复：检查并记录LLM返回的完整结果
-                    logger.info(f"✅ LLM调用成功")
+                    # 关键修复：检查并记录LLM返回的完整结果（增强版）
+                    logger.info(f"✅ 增强版LLM调用成功")
                     logger.info(f"LLM返回结果类型: {type(llm_result)}")
                     logger.info(f"LLM返回内容字符数: {len(financial_report) if financial_report else 0}")
-                    logger.info(f"LLM返回内容前100字符: {financial_report[:100] if financial_report else 'None或空字符串'}")
-                    logger.info(f"LLM返回内容后100字符: {financial_report[-100:] if financial_report and len(financial_report) > 100 else '内容不足100字符'}")
+                    if financial_report:
+                        logger.info(f"报告开头: {financial_report[:100]}")
+                        logger.info(f"报告结尾: {financial_report[-100:]}")
+                        # 检查是否包含趋势分析内容
+                        if "趋势" in financial_report or "历史" in financial_report or "变化" in financial_report:
+                            logger.info("✅ 报告包含趋势分析内容")
+                        else:
+                            logger.warning("⚠️ 报告可能缺少趋势分析内容")
+                    else:
+                        logger.warning("⚠️ LLM返回空内容")
                     
                     # 验证报告完整性
                     if not financial_report or len(financial_report.strip()) == 0:
