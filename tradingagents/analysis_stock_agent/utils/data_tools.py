@@ -415,6 +415,55 @@ class AShareDataTools:
             logger.error(f"Failed to initialize stock data for {symbol}: {str(e)}")
             return {}
     
+    def get_dividend_details(self, symbol: str, 
+                           start_date: Optional[str] = None,
+                           end_date: Optional[str] = None,
+                           limit: int = 100) -> List[Dict[str, Any]]:
+        """
+        获取股票分红送配详情数据
+        
+        Args:
+            symbol: 股票代码
+            start_date: 开始日期 (YYYY-MM-DD)
+            end_date: 结束日期 (YYYY-MM-DD)
+            limit: 返回数量
+            
+        Returns:
+            分红送配详情列表
+        """
+        params = {
+            "symbols": symbol,
+            "limit": limit
+        }
+        if start_date:
+            params["start_date"] = start_date
+        if end_date:
+            params["end_date"] = end_date
+            
+        try:
+            result = self._make_request("financial/dividend-detail", params=params)
+            return result.get("data", [])
+        except Exception as e:
+            logger.error(f"Failed to get dividend details for {symbol}: {str(e)}")
+            return []
+    
+    def get_latest_dividend_info(self, symbol: str) -> Dict[str, Any]:
+        """
+        获取最新分红送配信息
+        
+        Args:
+            symbol: 股票代码
+            
+        Returns:
+            最新分红送配数据
+        """
+        try:
+            dividend_details = self.get_dividend_details(symbol, limit=1)
+            return dividend_details[0] if dividend_details else {}
+        except Exception as e:
+            logger.error(f"Failed to get latest dividend info for {symbol}: {str(e)}")
+            return {}
+    
     def check_rate_limit(self, symbol: str) -> Dict[str, Any]:
         """
         检查速率限制状态
@@ -534,11 +583,12 @@ class DataProcessor:
         data_tools = AShareDataTools({})
         # print(data_tools.initialize_stock_data("002594"))
         # print(data_tools.get_financial_reports("002594"))
-        print(len(data_tools.get_financial_reports("600900")))
+        # print(len(data_tools.get_financial_reports("600900")))
         # print(data_tools.get_stock_basic_info("002594"))
         # print(data_tools.get_financial_reports("002594"))
         # print(data_tools.get_latest_financial_report("002594"))
         # print(data_tools.get_financial_summary("002594"))
-        print(len(data_tools.get_daily_quotes("600900")))
+        # print(len(data_tools.get_daily_quotes("600900")))
+        print(data_tools.get_dividend_details("002594"))
         # print(data_tools.get_shenwan_industry_info())
         # print(data_tools.get_industry_constituents(["002594"]))

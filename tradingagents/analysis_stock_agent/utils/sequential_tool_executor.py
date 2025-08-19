@@ -240,7 +240,10 @@ FINANCIAL_ANALYSIS_SEQUENCE = [
                      param_mapping={"financial_data": "__full_result__"}),
     ToolExecutionStep("calculate_financial_health_score", "计算财务健康度评分", 
                      dependency="calculate_financial_ratios",
-                     param_mapping={"ratios": "__full_result__"}),
+                     param_mapping={
+                         "ratios": "__full_result__",
+                         "financial_data": "get_financial_data.__full_result__"
+                     }),
     ToolExecutionStep("prepare_analysis_data_for_llm", "准备LLM分析数据", 
                      dependency="calculate_financial_health_score",
                      param_mapping={"analysis_data": "__all_results__"})

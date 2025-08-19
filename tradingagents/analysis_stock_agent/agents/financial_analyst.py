@@ -53,14 +53,14 @@ def create_financial_analyst(llm, toolkit, config):
     @tool
     def get_financial_data(stock_code: str, years: int = 5) -> Dict[str, Any]:
         """
-        获取股票财务数据（增强版：支持多年历史数据趋势分析）
+        获取股票财务数据（增强版：支持多年历史数据趋势分析+分红数据）
         
         Args:
             stock_code: 股票代码
             years: 历史年数，增加到5年以支持更好的趋势分析
             
         Returns:
-            包含多年历史数据的财务数据字典
+            包含多年历史数据和分红信息的财务数据字典
         """
         try:
             logger.info(f"Getting comprehensive financial data for {stock_code} (last {years} years)")
@@ -96,10 +96,22 @@ def create_financial_analyst(llm, toolkit, config):
             # 获取财务摘要（支持指定年数）
             financial_summary = data_tools.get_financial_summary(stock_code, years)
             
+            # 🆕 获取分红送配数据（多年历史）
+            dividend_details = data_tools.get_dividend_details(
+                stock_code,
+                start_date=start_date,
+                end_date=end_date,
+                limit=years * 2  # 每年可能有多次分红
+            )
+            
+            # 获取最新分红信息
+            latest_dividend = data_tools.get_latest_dividend_info(stock_code)
+            
             # 记录获取到的数据统计
             logger.info(f"Retrieved data summary for {stock_code}:")
             logger.info(f"  - Total historical reports: {len(historical_reports) if historical_reports else 0}")
             logger.info(f"  - Annual reports: {len(annual_reports) if annual_reports else 0}")
+            logger.info(f"  - Dividend records: {len(dividend_details) if dividend_details else 0}")
             logger.info(f"  - Date range: {start_date} to {end_date}")
             
             return {
@@ -109,14 +121,17 @@ def create_financial_analyst(llm, toolkit, config):
                 "financial_reports": historical_reports,  # 完整历史数据
                 "annual_reports": annual_reports,  # 年报数据（用于趋势分析）
                 "financial_summary": financial_summary,
+                "dividend_details": dividend_details,  # 🆕 分红送配历史数据
+                "latest_dividend": latest_dividend,  # 🆕 最新分红信息
                 "data_range": {
                     "start_date": start_date,
                     "end_date": end_date,
                     "years_requested": years,
                     "total_reports": len(historical_reports) if historical_reports else 0,
-                    "annual_reports": len(annual_reports) if annual_reports else 0
+                    "annual_reports": len(annual_reports) if annual_reports else 0,
+                    "dividend_records": len(dividend_details) if dividend_details else 0
                 },
-                "data_source": "A股数据API（多年历史数据）"
+                "data_source": "A股数据API（多年历史数据+分红信息）"
             }
             
         except Exception as e:
@@ -160,6 +175,10 @@ def create_financial_analyst(llm, toolkit, config):
             # 增强的成长性指标计算（使用年报数据进行多年趋势分析）
             growth = {}
             trend_analysis = {}
+            dividend_ratios = {}  # 新增：分红相关比率
+            
+            # 计算分红相关比率
+            dividend_ratios = _calculate_dividend_ratios(financial_data)
             
             if annual_reports and len(annual_reports) >= 2:
                 # 使用年报数据进行趋势分析
@@ -184,12 +203,14 @@ def create_financial_analyst(llm, toolkit, config):
                 "efficiency_ratios": efficiency,
                 "cashflow_ratios": cashflow,
                 "growth_ratios": growth,
+                "dividend_ratios": dividend_ratios,  # 新增：分红比率
                 "trend_analysis": trend_analysis,  # 新增：多年趋势分析
                 "data_quality": {
                     "annual_reports_count": len(annual_reports),
                     "total_reports_count": len(financial_reports),
                     "trend_analysis_available": len(annual_reports) >= 3,
-                    "growth_analysis_available": len(annual_reports) >= 2 or len(financial_reports) >= 2
+                    "growth_analysis_available": len(annual_reports) >= 2 or len(financial_reports) >= 2,
+                    "dividend_data_available": dividend_ratios.get("dividend_data_available", False)
                 },
                 "calculation_date": datetime.now().isoformat()
             }
@@ -333,8 +354,121 @@ def create_financial_analyst(llm, toolkit, config):
         except Exception:
             return "趋势分析需要更多数据"
     
+    def _calculate_dividend_ratios(financial_data: Dict[str, Any]) -> Dict[str, Any]:
+        """计算分红相关比率"""
+        try:
+            dividend_details = financial_data.get("dividend_details", [])
+            latest_dividend = financial_data.get("latest_dividend", {})
+            latest_report = financial_data.get("latest_report", {})
+            
+            ratios = {
+                "dividend_data_available": len(dividend_details) > 0 or bool(latest_dividend),
+                "dividend_records_count": len(dividend_details)
+            }
+            
+            if latest_dividend:
+                # 股息率
+                ratios["dividend_yield"] = float(latest_dividend.get("dividend_yield", 0))
+                
+                # 现金分红比例（每10股）
+                ratios["cash_dividend_per_10_shares"] = float(latest_dividend.get("cash_dividend_ratio", 0))
+                
+                # 每股分红
+                cash_dividend_ratio = float(latest_dividend.get("cash_dividend_ratio", 0))
+                ratios["dividend_per_share"] = cash_dividend_ratio / 10 if cash_dividend_ratio > 0 else 0
+                
+                # 分红支付率（需要每股收益数据）
+                eps = float(latest_report.get("eps", 0)) if latest_report else 0
+                if eps > 0 and ratios["dividend_per_share"] > 0:
+                    ratios["dividend_payout_ratio"] = (ratios["dividend_per_share"] / eps) * 100
+                else:
+                    ratios["dividend_payout_ratio"] = 0
+                
+                # 分红方案进度
+                ratios["scheme_progress"] = latest_dividend.get("scheme_progress", "")
+                
+                # 净利润同比增长率
+                ratios["net_profit_growth_rate"] = float(latest_dividend.get("net_profit_growth_rate", 0)) * 100
+            
+            # 分红连续性分析
+            if len(dividend_details) >= 2:
+                consecutive_years = 0
+                for detail in dividend_details:
+                    if float(detail.get("cash_dividend_ratio", 0)) > 0:
+                        consecutive_years += 1
+                    else:
+                        break
+                ratios["consecutive_dividend_years"] = consecutive_years
+                
+                # 分红增长趋势
+                recent_dividends = [float(d.get("cash_dividend_ratio", 0)) for d in dividend_details[:3]]
+                if len(recent_dividends) >= 2 and recent_dividends[1] > 0:
+                    dividend_growth = ((recent_dividends[0] - recent_dividends[1]) / recent_dividends[1]) * 100
+                    ratios["dividend_growth_rate"] = dividend_growth
+                else:
+                    ratios["dividend_growth_rate"] = 0
+            
+            return ratios
+            
+        except Exception as e:
+            logger.warning(f"Error calculating dividend ratios: {str(e)}")
+            return {"dividend_data_available": False, "error": str(e)}
+
+    def _calculate_dividend_score(financial_data: Dict[str, Any]) -> int:
+        """计算基于分红数据的股东回报评分"""
+        try:
+            dividend_details = financial_data.get("dividend_details", [])
+            latest_dividend = financial_data.get("latest_dividend", {})
+            
+            if not dividend_details and not latest_dividend:
+                return 5  # 无分红数据，给中等评分
+            
+            score = 0
+            
+            # 基于最新分红信息计算评分
+            if latest_dividend:
+                # 股息率评分 (最高5分)
+                dividend_yield = float(latest_dividend.get("dividend_yield", 0))
+                if dividend_yield > 0.03:  # >3%
+                    score += 5
+                elif dividend_yield > 0.02:  # >2%
+                    score += 4
+                elif dividend_yield > 0.01:  # >1%
+                    score += 3
+                elif dividend_yield > 0:  # >0%
+                    score += 2
+                else:
+                    score += 1
+                
+                # 现金分红比例评分 (最高3分)
+                cash_dividend = float(latest_dividend.get("cash_dividend_ratio", 0))
+                if cash_dividend > 10:  # 每10股超过10元
+                    score += 3
+                elif cash_dividend > 5:  # 每10股超过5元
+                    score += 2
+                elif cash_dividend > 0:  # 有现金分红
+                    score += 1
+                
+                # 分红稳定性评分 (最高2分) - 基于历史分红记录
+                if len(dividend_details) >= 3:  # 至少3年分红记录
+                    consecutive_dividends = 0
+                    for detail in dividend_details[:5]:  # 检查最近5年
+                        if float(detail.get("cash_dividend_ratio", 0)) > 0:
+                            consecutive_dividends += 1
+                    
+                    if consecutive_dividends >= 5:
+                        score += 2
+                    elif consecutive_dividends >= 3:
+                        score += 1
+            
+            return min(score, 10)  # 最高10分
+            
+        except Exception as e:
+            logger.warning(f"Error calculating dividend score: {str(e)}")
+            return 6  # 出错时给中等评分
+    
     @tool 
-    def calculate_financial_health_score(ratios: Dict[str, Any]) -> Dict[str, Any]:
+    def calculate_financial_health_score(ratios: Dict[str, Any], financial_data: Dict[str, Any] = None) -> Dict[str, Any]:
         """
         计算财务健康度评分
         
@@ -420,8 +554,8 @@ def create_financial_analyst(llm, toolkit, config):
             score += growth_score
             score_breakdown["growth"] = growth_score
             
-            # 股东回报评分 (10分) - 简化处理
-            dividend_score = 8  # 默认评分，实际需要股利数据
+            # 股东回报评分 (10分) - 基于分红数据的真实评分
+            dividend_score = _calculate_dividend_score(financial_data) if financial_data else 6  # 默认评分
             score += dividend_score
             score_breakdown["dividend"] = dividend_score
             
@@ -700,6 +834,9 @@ def create_financial_analyst(llm, toolkit, config):
 ### 成长性指标
 {growth_ratios}
 
+### 股东回报和分红指标
+{dividend_ratios}
+
 ## 历史财务数据
 ### 最新财务报告
 {raw_financial_data}
@@ -709,12 +846,14 @@ def create_financial_analyst(llm, toolkit, config):
 2. **历史对比**：将最新财务表现与历史数据进行对比，识别变化趋势和拐点
 3. **预测性洞察**：基于历史趋势预测未来可能的发展方向和潜在风险
 4. **深度解读**：解释每个财务指标变化背后的业务驱动因素
-5. **投资建议**：结合趋势分析给出具体的投资建议和风险提示
-6. **专业判断**：展现对行业和公司深度理解的专业分析能力
+5. **股东回报分析**：重点分析公司的分红政策、分红稳定性、股息率水平和分红增长趋势
+6. **投资建议**：结合趋势分析给出具体的投资建议和风险提示
+7. **专业判断**：展现对行业和公司深度理解的专业分析能力
 
 **请确保报告包含：**
 - 详细的多年趋势分析章节
 - 基于历史数据的预测性判断
+- 专门的股东回报和分红分析章节
 - 明确的投资建议和风险警示
 - 专业的财务分析深度和洞察力
                         """)
@@ -752,6 +891,7 @@ def create_financial_analyst(llm, toolkit, config):
                         "efficiency_ratios": json.dumps(financial_ratios.get("efficiency_ratios", {}), ensure_ascii=False, indent=2),
                         "cashflow_ratios": json.dumps(financial_ratios.get("cashflow_ratios", {}), ensure_ascii=False, indent=2),
                         "growth_ratios": json.dumps(financial_ratios.get("growth_ratios", {}), ensure_ascii=False, indent=2),
+                        "dividend_ratios": json.dumps(financial_ratios.get("dividend_ratios", {}), ensure_ascii=False, indent=2),  # 新增：分红指标
                         
                         # 原始财务数据（限制长度）
                         "raw_financial_data": json.dumps(financial_data.get("latest_report", {}), ensure_ascii=False, indent=2)[:3000]  # 增加到3000字符
