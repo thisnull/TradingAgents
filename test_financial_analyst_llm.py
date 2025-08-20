@@ -13,7 +13,8 @@ from datetime import datetime
 from pathlib import Path
 
 # 添加项目路径
-project_root = Path(__file__).parent
+current_dir = Path(__file__).parent
+project_root = current_dir.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 # 加载.env文件
@@ -58,9 +59,11 @@ def test_llm_agent_financial_analyst():
             if str(Path.cwd()) not in sys.path:
                 sys.path.insert(0, str(Path.cwd()))
                 
+            from tradingagents.analysis_stock_agent.utils.agent_test_framework import create_test_framework
             from tradingagents.analysis_stock_agent.agents.financial_analyst_llm import create_financial_analyst_llm
             from tradingagents.analysis_stock_agent.agents.financial_analyst import create_financial_analyst
             from tradingagents.analysis_stock_agent.config.a_share_config import A_SHARE_DEFAULT_CONFIG
+            print("  ✅ 成功导入agent_test_framework")
             print("  ✅ 成功导入financial_analyst_llm")
             print("  ✅ 成功导入financial_analyst (原版)")
             print("  ✅ 成功导入配置文件")
@@ -68,32 +71,23 @@ def test_llm_agent_financial_analyst():
             print(f"  ❌ 导入失败: {e}")
             return False
         
-        # 初始化LLM
-        print("\n📋 3. 初始化LLM")
+        # 初始化测试框架和LLM
+        print("\n📋 3. 初始化测试框架和LLM")
         try:
-            if "GEMINI_API_KEY" in available_keys or "GOOGLE_API_KEY" in available_keys:
-                from langchain_google_genai import ChatGoogleGenerativeAI
-                llm = ChatGoogleGenerativeAI(
-                    model="gemini-1.5-flash",
-                    temperature=0,
-                    max_output_tokens=32768,  # 支持长输出
-                    timeout=60
-                )
-                print("  ✅ 使用Gemini模型")
-            elif "OPENAI_API_KEY" in available_keys:
-                from langchain_openai import ChatOpenAI
-                llm = ChatOpenAI(
-                    model="gpt-4o-mini",
-                    temperature=0,
-                    max_tokens=4096,
-                    timeout=60
-                )
-                print("  ✅ 使用OpenAI模型")
-            else:
-                raise Exception("没有可用的LLM配置")
+            # 创建测试框架
+            framework = create_test_framework(debug=True)
+            
+            if not framework.llm_manager:
+                print("  ❌ 无法初始化LLM管理器，测试终止")
+                return False
+            
+            # 获取LLM实例 (使用可工作的gemini-2.5-flash代替有问题的gemini-2.5-pro)
+            llm = framework.get_test_llm("gemini-2.5-flash")
+            print(f"  ✅ 获取深度思考LLM: {llm}")
+            print("  ✅ 使用测试框架统一的LLM配置")
                 
         except Exception as e:
-            print(f"  ❌ LLM初始化失败: {e}")
+            print(f"  ❌ 测试框架和LLM初始化失败: {e}")
             return False
         
         # 创建Agent
@@ -284,7 +278,7 @@ def test_llm_agent_financial_analyst():
 - **测试时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 - **测试股票**: {test_stock_name}({test_stock_code})
 - **测试模式**: LLM Agent动态工具选择
-- **LLM模型**: {llm.model_name if hasattr(llm, 'model_name') else '未知'}
+- **LLM模型**: {getattr(llm, 'model_name', getattr(llm, 'model', 'gemini-2.5-flash'))}
 
 ## 🧪 测试结果
 
@@ -369,30 +363,14 @@ def test_with_mock_llm():
     print("-" * 40)
     
     try:
-        # 创建模拟LLM
-        class MockLLM:
-            def __init__(self):
-                self.model_name = "mock-llm"
-            
-            def invoke(self, input_data):
-                # 模拟LLM响应
-                class MockResponse:
-                    content = f"模拟财务分析报告 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-                return MockResponse()
-        
-        mock_llm = MockLLM()
-        print("  ✅ 模拟LLM创建成功")
-        
-        # 测试基础功能
+        # 尝试创建测试框架（可能会失败，但可以验证代码结构）
+        from tradingagents.analysis_stock_agent.utils.agent_test_framework import create_test_framework
         from tradingagents.analysis_stock_agent.agents.financial_analyst_llm import create_financial_analyst_llm
         from tradingagents.analysis_stock_agent.config.a_share_config import A_SHARE_DEFAULT_CONFIG
         
-        config = A_SHARE_DEFAULT_CONFIG.copy()
-        config["debug"] = True
-        
-        # 由于缺少API密钥，这个测试主要验证代码结构
-        print("  ✅ 代码导入和基础结构验证成功")
+        print("  ✅ 代码导入成功")
         print("  ⚠️ 无法进行完整功能测试（需要API密钥）")
+        print("  📝 建议：配置GOOGLE_API_KEY或GEMINI_API_KEY进行完整测试")
         
         return True
         
