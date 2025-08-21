@@ -31,7 +31,21 @@ class LLMManager:
         
         # 支持的模型配置
         self.supported_models = {
-            # Google Gemini 2.5系列模型
+            # Google Gemini 1.5系列模型（更稳定）
+            "gemini-1.5-pro": {
+                "provider": "gemini",
+                "model_name": "gemini-1.5-pro",
+                "temperature": 0.1,
+                "max_tokens": 8192
+            },
+            "gemini-1.5-flash": {
+                "provider": "gemini",
+                "model_name": "gemini-1.5-flash",
+                "temperature": 0.1,
+                "max_tokens": 8192  # 1.5 Flash稳定版本，适中的token限制
+            },
+            
+            # Google Gemini 2.5系列模型（可能不稳定）
             "gemini-2.5-pro": {
                 "provider": "gemini",
                 "model_name": "gemini-2.5-pro",
