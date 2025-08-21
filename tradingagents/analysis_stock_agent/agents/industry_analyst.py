@@ -795,11 +795,58 @@ def create_industry_analyst(llm, toolkit, config):
             # 处理工具调用结果
             industry_report = ""
             if hasattr(result, 'tool_calls') and result.tool_calls:
-                # 如果有工具调用，处理工具调用结果
-                industry_report = f"{stock_name}（{stock_code}）行业分析已启动，正在处理行业数据..."
+                # 执行工具调用并获取结果
+                logger.info(f"Executing {len(result.tool_calls)} tool calls")
+                
+                # 执行所有工具调用
+                tool_results = []
+                for tool_call in result.tool_calls:
+                    tool_name = tool_call.get('name')
+                    tool_args = tool_call.get('args', {})
+                    
+                    # 找到对应的工具并执行
+                    for tool in tools:
+                        if tool.name == tool_name:
+                            try:
+                                tool_result = tool.invoke(tool_args)
+                                tool_results.append({
+                                    "tool_call_id": tool_call.get('id'),
+                                    "tool_name": tool_name,
+                                    "result": tool_result
+                                })
+                                logger.info(f"Tool {tool_name} executed successfully")
+                            except Exception as tool_error:
+                                logger.error(f"Tool {tool_name} failed: {str(tool_error)}")
+                                tool_results.append({
+                                    "tool_call_id": tool_call.get('id'),
+                                    "tool_name": tool_name,
+                                    "result": f"工具执行失败: {str(tool_error)}"
+                                })
+                            break
+                
+                # 如果有工具调用结果，让LLM基于结果生成完整报告
+                if tool_results:
+                    # 构建包含工具结果的消息
+                    messages_with_tools = messages + [result]
+                    for tool_result in tool_results:
+                        messages_with_tools.append({
+                            "role": "tool",
+                            "content": str(tool_result["result"]),
+                            "tool_call_id": tool_result["tool_call_id"]
+                        })
+                    
+                    # 让LLM基于工具结果生成最终报告
+                    final_result = chain.invoke({"messages": messages_with_tools})
+                    industry_report = final_result.content if hasattr(final_result, 'content') else str(final_result)
+                    
+                    # 更新messages为最终结果
+                    result = final_result
+                else:
+                    # 如果工具调用失败，返回占位符
+                    industry_report = f"{stock_name}（{stock_code}）行业分析启动，但工具调用失败"
             else:
                 # 如果没有工具调用，使用LLM直接回答
-                industry_report = result.content
+                industry_report = result.content if hasattr(result, 'content') else str(result)
             
             logger.info("Industry analysis completed")
             

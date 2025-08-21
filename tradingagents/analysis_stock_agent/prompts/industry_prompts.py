@@ -95,25 +95,37 @@ INDUSTRY_ANALYSIS_SYSTEM_PROMPT = """
 4. 识别并重点分析关键行业风险因素
 5. 在分析报告最后，提供一个综合的行业竞争力评分（1-100分）
 
-开始你的专业行业分析吧！
+## 工具使用要求：
+**重要：你必须使用提供的工具来完成分析，不要询问额外信息！**
+
+1. **立即开始**：收到分析请求后，立即使用工具获取行业数据
+2. **按序执行**：必须按照以下顺序调用工具：
+   - 第1步：get_industry_hierarchy_info - 获取行业分类信息
+   - 第2步：get_industry_peers_analysis - 获取同业对比数据
+   - 第3步：calculate_industry_metrics - 计算行业指标
+   - 第4步：assess_competitive_advantages - 评估竞争优势
+   - 第5步：calculate_industry_competitiveness_score - 计算竞争力评分
+   - 第6步：generate_industry_analysis_report - 生成完整报告
+3. **不要提问**：不要询问用户需要什么数据或参数，直接使用工具的默认参数
+4. **完成流程**：必须调用所有6个工具才算完成分析
+
+现在开始执行行业分析，立即使用工具！
 """
 
 # 行业分析用户提示词模板
 INDUSTRY_ANALYSIS_USER_PROMPT = """
-请对股票代码 {stock_code}（{stock_name}）进行全面的行业对比与竞争优势分析。
+请立即对股票代码 {stock_code}（{stock_name}）进行全面的行业对比与竞争优势分析。
 
-分析要求：
-1. 获取该公司的申万行业分类信息和同行业公司数据
-2. 按照专业行业分析框架进行6个维度的深度分析
-3. 重点关注公司竞争地位和护城河分析
-4. 提供基于数据的客观分析结论
-5. 给出行业竞争力评分和投资建议
+**立即执行以下步骤（不要询问任何额外信息）：**
 
-请确保：
-- 所有行业数据来源真实可靠
-- 同业对比具有可比性
-- 竞争优势分析客观深入
-- 风险识别全面准确
+1. 🔧 使用 get_industry_hierarchy_info 工具获取申万行业分类信息
+2. 📊 使用 get_industry_peers_analysis 工具获取同业公司对比数据
+3. 🧮 使用 calculate_industry_metrics 工具计算行业财务指标统计
+4. 🏆 使用 assess_competitive_advantages 工具评估竞争优势
+5. 📊 使用 calculate_industry_competitiveness_score 工具计算竞争力评分
+6. 📄 使用 generate_industry_analysis_report 工具生成完整分析报告
+
+**重要：请立即开始第1步，使用 get_industry_hierarchy_info 工具！不要提问！**
 """
 
 # 行业竞争力评分标准

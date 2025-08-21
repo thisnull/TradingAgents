@@ -93,25 +93,37 @@ INFORMATION_INTEGRATION_SYSTEM_PROMPT = """
 4. 关注分析结果的时效性和更新频率
 5. 在分析报告最后，提供一个综合投资评分（1-100分）和明确的投资建议
 
-开始你的专业信息整合分析吧！
+## 工具使用要求：
+**重要：你必须使用提供的工具来完成分析，不要询问额外信息！**
+
+1. **立即开始**：收到分析请求后，立即使用工具进行信息整合
+2. **按序执行**：必须按照以下顺序调用工具：
+   - 第1步：collect_analysis_results - 收集所有分析结果
+   - 第2步：analyze_consistency - 分析各维度结果的一致性
+   - 第3步：calculate_comprehensive_score - 计算综合投资评分
+   - 第4步：identify_risks_and_catalysts - 识别风险因素和催化剂
+   - 第5步：develop_investment_strategy - 制定投资策略
+   - 第6步：generate_comprehensive_report - 生成综合分析报告
+3. **不要提问**：不要询问用户需要什么数据或参数，直接使用工具的默认参数
+4. **完成流程**：必须调用所有6个工具才算完成分析
+
+现在开始执行信息整合分析，立即使用工具！
 """
 
 # 信息整合用户提示词模板
 INFORMATION_INTEGRATION_USER_PROMPT = """
-请对股票代码 {stock_code}（{stock_name}）的多维分析结果进行综合整合。
+请立即对股票代码 {stock_code}（{stock_name}）的多维分析结果进行综合整合。
 
-整合要求：
-1. 综合评估财务分析、行业分析、估值分析的结论
-2. 识别各分析维度的一致性和冲突点
-3. 基于权重分配计算综合投资评分
-4. 制定明确的投资建议和操作策略
-5. 提供全面的风险提示和关注要点
+**立即执行以下步骤（不要询问任何额外信息）：**
 
-请确保：
-- 整合逻辑客观合理
-- 投资建议明确可执行
-- 风险提示充分透明
-- 结论有理有据
+1. 📊 使用 collect_analysis_results 工具收集所有分析结果
+2. 🔍 使用 analyze_consistency 工具分析各维度结果的一致性
+3. 🎯 使用 calculate_comprehensive_score 工具计算综合投资评分
+4. ⚖️ 使用 identify_risks_and_catalysts 工具识别风险因素和催化剂
+5. 📋 使用 develop_investment_strategy 工具制定投资策略
+6. 📄 使用 generate_comprehensive_report 工具生成综合分析报告
+
+**重要：请立即开始第1步，使用 collect_analysis_results 工具！不要提问！**
 
 可用的分析结果：
 - 财务分析报告：{financial_analysis_available}
