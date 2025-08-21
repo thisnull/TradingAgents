@@ -81,8 +81,8 @@ def test_llm_agent_financial_analyst():
                 print("  ❌ 无法初始化LLM管理器，测试终止")
                 return False
             
-            # 获取LLM实例 (使用可工作的gemini-2.5-flash代替有问题的gemini-2.5-pro)
-            llm = framework.get_test_llm("gemini-2.5-flash")
+            # 获取LLM实例 (使用稳定的gemini-1.5-flash代替可能有问题的gemini-2.5-flash)
+            llm = framework.get_test_llm("gemini-1.5-flash")
             print(f"  ✅ 获取深度思考LLM: {llm}")
             print("  ✅ 使用测试框架统一的LLM配置")
                 
@@ -129,9 +129,17 @@ def test_llm_agent_financial_analyst():
         start_time = datetime.now()
         
         try:
-            # 直接调用executor - 使用更明确的指令
-            user_input = f"请首先使用get_financial_data工具获取股票{test_stock_code}（{test_stock_name}）的财务数据，然后按顺序调用其他工具完成完整的财务分析"
-            
+            # 直接调用executor - 使用强制性明确的指令
+            user_input = f"""请对股票{test_stock_code}（{test_stock_name}）进行完整的财务分析。
+
+重要：你必须按顺序完成以下所有4个步骤，缺一不可：
+1. 调用 get_financial_data 工具获取财务数据
+2. 调用 calculate_financial_ratios 工具计算财务比率
+3. 调用 calculate_financial_health_score 工具计算健康度评分
+4. 调用 generate_financial_analysis_report 工具生成完整报告
+
+立即开始第1步：调用 get_financial_data 工具！"""
+
             llm_result = llm_executor.invoke({
                 "input": user_input
             })
@@ -278,7 +286,7 @@ def test_llm_agent_financial_analyst():
 - **测试时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 - **测试股票**: {test_stock_name}({test_stock_code})
 - **测试模式**: LLM Agent动态工具选择
-- **LLM模型**: {getattr(llm, 'model_name', getattr(llm, 'model', 'gemini-2.5-flash'))}
+- **LLM模型**: {getattr(llm, 'model_name', getattr(llm, 'model', 'gemini-1.5-flash'))}
 
 ## 🧪 测试结果
 
