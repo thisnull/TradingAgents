@@ -1,0 +1,13 @@
+# LangChain + Gemini 多轮链式工具调用 Demo 依赖
+
+# LangChain core
+langchain>=0.2.0
+
+# Google Gemini integration
+langchain-google-genai>=2.0.0
+
+# Data validation
+pydantic>=2.0.0
+
+# Environment variable management
+python-dotenv>=1.0.0
