@@ -48,21 +48,18 @@ def create_financial_analyst_llm(llm, toolkit, config, return_executor=False):
     @tool
     def get_financial_data(stock_code: str, years: int = 5) -> Dict[str, Any]:
         """
-        获取股票的综合财务数据，包括多年历史数据和分红信息。
-        
-        这是进行财务分析的第一步，应该首先调用此工具获取基础数据。
-        
+        【第1步/共4步】获取股票的综合财务数据，包括多年历史数据和分红信息。
+
+        ⚠️ 这是财务分析的第1步，必须首先调用！完成后必须立即调用第2步工具：calculate_financial_ratios
+
         Args:
             stock_code: 股票代码（如002594）
             years: 获取历史数据的年数，建议使用5年获得更好的趋势分析
-            
+
         Returns:
             包含基本信息、最新财报、历史报告、分红数据等的完整财务数据字典
-            
-        使用场景：
-        - 开始财务分析时首先调用
-        - 需要了解公司基本情况时
-        - 进行多年趋势分析时
+
+        ⚠️ 完成此步骤后，必须立即调用 calculate_financial_ratios 工具（第2步）！
         """
         try:
             logger.info(f"[LLM Tool] Getting comprehensive financial data for {stock_code} (last {years} years)")
@@ -137,13 +134,13 @@ def create_financial_analyst_llm(llm, toolkit, config, return_executor=False):
     @tool
     def calculate_financial_ratios(financial_data) -> Dict[str, Any]:
         """
-        基于财务数据计算各类财务比率指标，包括多年趋势分析。
-        
-        应该在获取财务数据后调用此工具，计算盈利能力、偿债能力、运营效率等关键指标。
-        
+        【第2步/共4步】基于财务数据计算各类财务比率指标，包括多年趋势分析。
+
+        ⚠️ 这是财务分析的第2步，必须在第1步get_financial_data后调用！完成后必须立即调用第3步工具：calculate_financial_health_score
+
         Args:
             financial_data: 从get_financial_data工具获得的完整财务数据（支持字典对象或JSON字符串）
-            
+
         Returns:
             包含所有财务比率和趋势分析的详细字典，涵盖：
             - 盈利能力比率（ROE、ROA、毛利率、净利率等）
@@ -153,11 +150,8 @@ def create_financial_analyst_llm(llm, toolkit, config, return_executor=False):
             - 成长性指标
             - 分红比率
             - 多年趋势分析
-            
-        使用场景：
-        - 获取财务数据后计算各项比率
-        - 需要评估公司各方面财务表现时
-        - 进行趋势分析和历史对比时
+
+        ⚠️ 完成此步骤后，必须立即调用 calculate_financial_health_score 工具（第3步）！
         """
         try:
             logger.info("[LLM Tool] Calculating comprehensive financial ratios with trend analysis")
@@ -175,7 +169,12 @@ def create_financial_analyst_llm(llm, toolkit, config, return_executor=False):
             if not isinstance(financial_data, dict):
                 logger.error(f"[LLM Tool] Invalid input type: {type(financial_data)}")
                 return {"error": f"Expected dictionary or JSON string, got {type(financial_data)}"}
-            
+
+            # 处理LLM传递的包装数据结构
+            if "get_financial_data_response" in financial_data:
+                financial_data = financial_data["get_financial_data_response"]
+                logger.info("[LLM Tool] Unwrapped get_financial_data_response structure")
+
             if "latest_report" not in financial_data or not financial_data["latest_report"]:
                 return {"error": "No latest financial report available"}
             
@@ -235,30 +234,27 @@ def create_financial_analyst_llm(llm, toolkit, config, return_executor=False):
             logger.error(f"[LLM Tool] Error calculating financial ratios: {str(e)}")
             return {"error": str(e)}
     
-    @tool 
+    @tool
     def calculate_financial_health_score(ratios, financial_data=None) -> Dict[str, Any]:
         """
-        基于财务比率计算综合财务健康度评分，提供量化的财务状况评估。
-        
-        应该在计算财务比率后调用，为公司财务状况提供0-100分的量化评分。
-        
+        【第3步/共4步】基于财务比率计算综合财务健康度评分，提供量化的财务状况评估。
+
+        ⚠️ 这是财务分析的第3步，必须在第2步calculate_financial_ratios后调用！完成后必须立即调用第4步工具：generate_financial_analysis_report
+
         Args:
             ratios: 从calculate_financial_ratios工具获得的财务比率数据（支持字典对象或JSON字符串）
             financial_data: 原始财务数据（可选，用于更准确的分红评分，支持字典对象或JSON字符串）
-            
+
         Returns:
             包含总评分、健康等级和各维度评分明细的字典：
             - 盈利能力评分（25分）
-            - 偿债能力评分（20分）  
+            - 偿债能力评分（20分）
             - 运营能力评分（15分）
             - 现金流质量评分（20分）
             - 成长性评分（10分）
             - 股东回报评分（10分）
-            
-        使用场景：
-        - 需要量化评估公司财务健康状况时
-        - 对比不同公司财务表现时
-        - 生成投资建议和风险评估时
+
+        ⚠️ 完成此步骤后，必须立即调用 generate_financial_analysis_report 工具（第4步，最后一步）！
         """
         try:
             logger.info("[LLM Tool] Calculating financial health score")
@@ -276,7 +272,12 @@ def create_financial_analyst_llm(llm, toolkit, config, return_executor=False):
             if not isinstance(ratios, dict):
                 logger.error(f"[LLM Tool] Invalid ratios input type: {type(ratios)}")
                 return {"error": f"Expected ratios as dictionary or JSON string, got {type(ratios)}"}
-            
+
+            # 处理LLM传递的包装ratios数据结构
+            if "calculate_financial_ratios_response" in ratios:
+                ratios = ratios["calculate_financial_ratios_response"]
+                logger.info("[LLM Tool] Unwrapped calculate_financial_ratios_response structure")
+
             # 处理financial_data参数类型（可选）
             if financial_data and isinstance(financial_data, str):
                 try:
@@ -286,6 +287,11 @@ def create_financial_analyst_llm(llm, toolkit, config, return_executor=False):
                 except (json.JSONDecodeError, ValueError) as e:
                     logger.warning(f"[LLM Tool] Failed to parse financial_data JSON string: {e}")
                     financial_data = None  # 继续执行，但不使用分红评分
+
+            # 处理LLM传递的包装financial_data数据结构
+            if financial_data and isinstance(financial_data, dict) and "get_financial_data_response" in financial_data:
+                financial_data = financial_data["get_financial_data_response"]
+                logger.info("[LLM Tool] Unwrapped get_financial_data_response structure for financial_data")
             
             score = 0
             score_breakdown = {}
@@ -397,32 +403,28 @@ def create_financial_analyst_llm(llm, toolkit, config, return_executor=False):
         stock_code: str,
         stock_name: str,
         financial_data,
-        financial_ratios, 
+        financial_ratios,
         health_score
     ) -> Dict[str, Any]:
         """
-        基于所有分析数据生成专业的财务分析报告。
-        
-        这是分析流程的最后一步，整合所有数据生成完整的专业报告。
-        应该在获取财务数据、计算比率和健康度评分后调用。
-        
+        【第4步/共4步】基于所有分析数据生成专业的财务分析报告。
+
+        ⚠️ 这是财务分析的最后一步（第4步），必须在前3步完成后调用！完成后财务分析流程结束。
+
         Args:
             stock_code: 股票代码
-            stock_name: 股票名称  
+            stock_name: 股票名称
             financial_data: 基础财务数据（支持字典对象或JSON字符串）
             financial_ratios: 财务比率分析结果（支持字典对象或JSON字符串）
             health_score: 财务健康度评分结果（支持字典对象或JSON字符串）
-            
+
         Returns:
             包含完整财务分析报告的字典，包括：
             - 专业分析报告文本
             - 投资建议和风险提示
             - 数据来源和计算方法说明
-            
-        使用场景：
-        - 完成所有财务分析后生成最终报告
-        - 需要向用户展示分析结果时
-        - 生成投资决策支持文档时
+
+        ✅ 完成此步骤后，财务分析流程全部结束！
         """
         try:
             logger.info(f"[LLM Tool] Generating financial analysis report for {stock_code}")
@@ -817,22 +819,31 @@ ROE：{financial_ratios.get('profitability_ratios', {}).get('roe', 0):.2f}%
         
         tools.append(get_mcp_financial_data)
     
-    # 创建LLM Agent专用的系统提示词（简化版）
-    system_prompt = """你是一个财务分析助手，必须使用工具来分析股票。
+    # 创建LLM Agent专用的系统提示词（强制执行版本）
+    system_prompt = """你是一个财务分析专家。你必须严格按照4步流程完成财务分析，缺一不可！
 
-重要规则：
-1. 当用户要求分析股票时，你必须调用工具，不要直接回答
-2. 始终从get_financial_data工具开始
-3. 按顺序调用：get_financial_data → calculate_financial_ratios → calculate_financial_health_score → generate_financial_analysis_report
-4. 使用工具获得结果后，将最终的分析报告返回给用户
+**强制执行流程（必须全部完成）：**
+1. get_financial_data - 获取基础数据（第1步，必须首先执行）
+2. calculate_financial_ratios - 计算比率（第2步，必须在第1步后执行）
+3. calculate_financial_health_score - 计算评分（第3步，必须在第2步后执行）
+4. generate_financial_analysis_report - 生成报告（第4步，必须在第3步后执行）
 
-可用工具：
-- get_financial_data: 获取股票财务数据（第一步）
-- calculate_financial_ratios: 计算财务比率（第二步）
-- calculate_financial_health_score: 计算健康度评分（第三步）
-- generate_financial_analysis_report: 生成分析报告（第四步）
+**严格执行规则：**
+- 你必须调用所有4个工具，缺一不可
+- 必须按照1→2→3→4的顺序执行
+- 每完成一个工具后，立即检查：我完成了几步？还剩几步？
+- 如果未完成4步，必须立即调用下一个工具
+- 只有完成全部4步后才能结束，绝不能提前停止
 
-现在开始使用工具进行财务分析！"""
+**第4步特别说明：**
+调用 generate_financial_analysis_report 时，需要传递以下参数：
+- stock_code: 股票代码（如"002594"）
+- stock_name: 股票名称（如"比亚迪"）
+- financial_data: 第1步的结果
+- financial_ratios: 第2步的结果
+- health_score: 第3步的结果
+
+**重要：你的任务没有完成，直到你调用了所有4个工具！**"""
     
     # 创建ChatPromptTemplate
     prompt = ChatPromptTemplate.from_messages([
@@ -852,8 +863,7 @@ ROE：{financial_ratios.get('profitability_ratios', {}).get('roe', 0):.2f}%
         handle_parsing_errors=True,
         max_iterations=8,  # 减少到8次，确保有足够次数调用4个工具
         return_intermediate_steps=True,
-        max_execution_time=300,  # 5分钟超时
-        early_stopping_method="generate"  # 确保生成最终答案
+        max_execution_time=300  # 5分钟超时
     )
     
     def financial_analyst_llm_node(state):

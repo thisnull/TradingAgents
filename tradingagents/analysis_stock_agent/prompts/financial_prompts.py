@@ -180,3 +180,23 @@ FINANCIAL_ANALYSIS_ENHANCED_REPORT_PROMPT = """基于以下多年历史财务分
 - 明确的投资建议和风险警示
 - 专业的财务分析深度和洞察力"""
 
+# 财务分析用户提示词模板
+FINANCIAL_ANALYSIS_USER_PROMPT = """
+请立即对股票代码 {stock_code}（{stock_name}）进行全面的财务指标分析。
+
+**重要：你必须按顺序完成以下所有4个步骤，缺一不可！**
+
+1. 📊 使用 get_financial_data 工具获取财务数据（第1步）
+2. 🧮 使用 calculate_financial_ratios 工具计算财务比率（第2步）
+3. 🎯 使用 calculate_financial_health_score 工具计算健康度评分（第3步）
+4. 📄 使用 generate_financial_analysis_report 工具生成完整分析报告（第4步）
+
+**执行要求：**
+- 必须按顺序调用所有4个工具
+- 每完成一个工具后，立即调用下一个工具
+- 不要询问任何额外信息，直接使用工具的默认参数
+- 只有完成全部4步后才算完成分析
+
+**立即开始第1步：使用 get_financial_data 工具获取 {stock_code} 的财务数据！**
+"""
+
